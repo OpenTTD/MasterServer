@@ -1,0 +1,39 @@
+Requirements and designs for the MasterServer and Updater.
+
+Requirements MasterServer:
+	- seperate application, i.e. not integrated with the Updater.
+	- does not care about any game data (the game info data that is sent is
+	  trashed).
+	- caches data where possible and sensible; a latency of up to X seconds
+	  is tolerable.
+	- be (network) backward compatible with the old MasterServer
+	- uses UDP to communicate with clients and (My)SQL for persistent storage.
+
+Requirements Updater:
+	- updates the game info of the on-line servers.
+	- updates that game info for the first time within X seconds of
+	  addition by the MasterServer.
+	- retrieve missing GRF info for the NewGRF information shown on the website.
+	- be (network) backward compatible with the old Updater.
+	- uses UDP to communicate with clients and (My)SQL for persistent storage.
+
+
+
+Design MasterServer:
+	- one main loop (unthreaded) that handles everything.
+	- use a shared code-base between MasterServer & Updater for main
+	  codebase. The network layer is shared with OpenTTD itself via
+	  svn:externals.
+	- the cache of on-line servers; updated once every X seconds or when
+	  the data gets invalidated, i.e. gameserver goes on/offline.
+
+Design Updater:
+	- one main loop (unthreaded) that handles everything.
+	- use a shared code-base between MasterServer & Updater for main
+	  codebase. The network layer is shared with OpenTTD itself via
+	  svn:externals.
+	- a prioritized queue of updater jobs to do; new servers (the ones
+	  that came just on-line) will be placed in front of the queue,
+	  whereas only updates of the game data are enqueued at the tail
+	  of the queue. Requests for GRF info are queued in between the
+	  'retrieve initial game data' and the 'update game data'.

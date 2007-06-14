@@ -1,0 +1,903 @@
+
+log() {
+	if [ $1 = "1" ]; then echo "$2"; fi
+	echo "$2" >> $config_log
+}
+
+set_default() {
+	ignore_extra_parameters="0"
+	# We set all kinds of defaults for params. Later on the user can override
+	# most of them; but if they don't, this default is used.
+	os="DETECT"
+	host=""
+	cxx_host=""
+	strip=""
+	revision=""
+	config_log="config.log"
+	enable_debug="0"
+	enable_profiling="0"
+	enable_static="1"
+	enable_assert="1"
+	enable_strip="1"
+	with_makedepend="1"
+	with_sort="1"
+
+	save_params_array="host cxx_host strip os revision enable_debug enable_profiling enable_static enable_assert enable_strip with_makedepend with_sort CXX CFLAGS LDFLAGS"
+}
+
+detect_params() {
+	# Walk over all params from the user and override any default settings if
+	#  needed. This also handles any invalid option.
+	for p in "$@"
+	do
+		if [ -n "$prev_p" ]
+		then
+			eval "$prev_p=\$p"
+			prev_p=
+			continue
+		fi
+
+		optarg=`expr "x$p" : 'x[^=]*=\(.*\)'`
+
+		case "$p" in
+			--help | -h)
+				showhelp
+				exit 0
+				;;
+
+			--config-log)
+				prev_p="config_log"
+				;;
+			--config-log=*)
+				config_log="$optarg"
+				;;
+
+			--host)
+				prev_p="host"
+				;;
+			--host=*)
+				host="$optarg"
+				;;
+
+			--os)
+				prev_p="os"
+				;;
+			--os=*)
+				os="$optarg"
+				;;
+
+			--revision=*)
+				revision="$optarg"
+				;;
+
+			--cxx-host)
+				prevp_p="cxx_host"
+				;;
+			--cxx-host=*)
+				cxx_host="$optarg"
+				;;
+
+			--strip)
+				prevp_p="strip"
+				;;
+			--strip=*)
+				strip="$optarg"
+				;;
+
+			--enable-debug)
+				enable_debug="1"
+				;;
+			--enable-debug=*)
+				enable_debug="$optarg"
+				;;
+			--enable-profiling)
+				enable_profiling="1"
+				;;
+			--enable-profiling=*)
+				enable_profiling="$optarg"
+				;;
+
+			--disable-static)
+				enable_static="0"
+				;;
+			--enable-static)
+				enable_static="2"
+				;;
+			--enable-static=*)
+				enable_static="$optarg"
+				;;
+
+			--disable-assert)
+				enable_assert="0"
+				;;
+			--enable-assert)
+				enable_assert="2"
+				;;
+			--enable-assert=*)
+				enable_assert="$optarg"
+				;;
+
+			--disable-strip)
+				enable_strip="0"
+				;;
+			--enable-strip)
+				enable_strip="2"
+				;;
+			--enable-strip=*)
+				enable_strip="$optarg"
+				;;
+
+			--with-makedepend)
+				with_makedepend="2"
+				;;
+			--without-makedepend)
+				with_makedepend="0"
+				;;
+			--with-makedepend=*)
+				with_makedepend="$optarg"
+				;;
+
+			--with-sort)
+				with_sort="2"
+				;;
+			--without-sort)
+				with_sort="0"
+				;;
+			--with-sort=*)
+				with_sort="$optarg"
+				;;
+
+			CXX=* | --CXX=*)
+				CXX="$optarg"
+				;;
+			CFLAGS=* | --CFLAGS=*)
+				CFLAGS="$optarg"
+				;;
+			LDFLAGS=* | --LDFLAGS=*)
+				LDFLAGS="$optarg"
+				;;
+
+			--ignore-extra-parameters)
+				ignore_extra_parameters="1"
+				;;
+
+			--*)
+				if [ "$ignore_extra_parameters" = "0" ]
+				then
+					echo "Unknown option $p"
+					exit 1
+				else
+					echo "Unknown option $p ignored"
+				fi
+				;;
+		esac
+	done
+
+	if [ -n "$prev_p" ]
+	then
+		echo "configure: error: missing argument to --$prev_p"
+		exit 1
+	fi
+
+	# Clean the logfile
+	echo "" > $config_log
+}
+
+save_params() {
+	# Here we save all params, so we can later on do an exact redo of this
+	#  configuration, without having the user to re-input stuff
+
+	echo "Running configure with following options:" >> $config_log
+	echo "" >> $config_log
+
+	configure="$0 --ignore-extra-parameters"
+	for p in $save_params_array
+	do
+		eval "v=\$$p"
+		p=`echo "$p" | sed 's/_/-/g;s/\n//g;'`
+		# Only save those params that aren't empty
+		configure="$configure --$p=$v"
+	done
+
+	echo "$configure" >> $config_log
+	echo "$configure" > config.cache
+	echo "" >> $config_log
+}
+
+check_params() {
+	# Some params want to be in full uppercase, else they might not work as
+	# expected.. fix that here
+
+	os=`echo $os | tr [:lower:] [:upper:]`
+
+	# Check if all params have valid values
+
+	# OS only allows DETECT, UNIX, OSX, FREEBSD, MORPHOS, BEOS, SUNOS, CYGWIN, and MINGW, OS2
+	if ! echo $os | grep -q "^DETECT$\|^UNIX$\|^OSX$\|^FREEBSD$\|^MORPHOS$\|^BEOS$\|^SUNOS$\|^CYGWIN$\|^MINGW$\|^OS2"
+	then
+		echo "configure: error: invalid option --os=$os"
+		echo " Available options are: --os=[DETECT|UNIX|OSX|FREEBSD|MORPHOS|BEOS|SUNOS|CYGWIN|MINGW|OS2]"
+		exit 1
+	fi
+	# enable_debug should be between 0 and 4
+	if ! echo $enable_debug | grep -q "^0$\|^1$\|^2$\|^3$"
+	then
+		echo "configure: error: invalid option --enable-debug=$enable_debug"
+		echo " Available options are: --enable-debug[=0123]"
+		exit 1
+	fi
+
+	check_host
+
+	detect_os
+
+	# Already detected by check_build
+	log 1 "checking for host gcc... $cxx_host"
+
+	check_strip
+	check_makedepend
+
+	if [ "$enable_static" = "1" ]
+	then
+		if [ "$os" = "MINGW" ] || [ "$os" = "CYGWIN" ] || [ "$os" = "MORPHOS" ] || [ "$os" = "OSX" ]
+		then
+			enable_static="2"
+		else
+			enable_static="0"
+		fi
+	fi
+
+	if [ "$enable_static" != "0" ]
+	then
+		log 1 "checking for static... yes"
+
+		if [ "$os" != "MINGW" ] && [ "$os" != "CYGWIN" ] && [ "$os" != "OSX" ] && [ "$os" != "MORPHOS" ]
+		then
+			log 1 "WARNING: static is only known to work on Windows, MacOSX and MorphOS"
+			log 1 "WARNING: use static at your own risk on this platform"
+
+			sleep 5
+		fi
+	else
+		log 1 "checking for static... no"
+	fi
+
+	# Show what we configured
+	if [ "$enable_debug" = "0" ]
+	then
+		log 1 "using debug level... no"
+	elif [ "$enable_profiling" != "0" ]
+	then
+		log 1 "using debug level... profiling (debug level $enable_debug)"
+	else
+		log 1 "using debug level... level $enable_debug"
+	fi
+
+	detect_sort
+
+	if [ "$enable_debug" = "0" ] && [ "$enable_profiling" = "0" ] && [ "$enable_strip" != "0" ]
+	then
+		if [ "$os" = "MORPHOS" ]
+		then
+			strip_arg="--strip-all --strip-unneeded --remove-section .comment"
+		elif [ "$os" = "OSX" ]
+		then
+			strip_arg=""
+		else
+			strip_arg="-s"
+		fi
+
+		log 1 "checking stripping... $strip $strip_arg"
+	else
+		strip=""
+		log 1 "checking stripping... skipped"
+	fi
+}
+
+make_cflags_and_ldflags() {
+	# General CFlags for BUILD
+	CFLAGS_BUILD=""
+	# General CFlags for HOST
+	CFLAGS="$CFLAGS -D$os -DWITH_REV"
+	# CFlags for HOST and C-Compiler
+	CC_FLAGS=""
+	# Libs to compile. In fact this is just LDFLAGS
+	LIBS=""
+	# LDFLAGS used for HOST
+	LDFLAGS="$LDFLAGS"
+
+	# Each debug level reduces the optimalization by a bit
+	if [ $enable_debug -ge 1 ]
+	then
+		CFLAGS="$CFLAGS -g -D_DEBUG"
+		OBJS_SUBDIR="debug"
+	else
+		OBJS_SUBDIR="release"
+	fi
+	if [ $enable_debug -ge 2 ]
+	then
+		CFLAGS="$CFLAGS -fno-inline"
+	fi
+	if [ $enable_debug -ge 3 ]
+	then
+		CFLAGS="$CFLAGS -O0"
+	fi
+	if [ $enable_debug = 0 ]
+	then
+		# No debug, add default stuff
+		if [ "$os" = "OSX" ]
+		then
+			# these compilerflags makes the app run as fast as possible without making the app unstable. It works on G3 or newer
+			CFLAGS="$CFLAGS -O3 -funroll-loops -fsched-interblock -falign-loops=16 -falign-jumps=16 -falign-functions=16 -falign-jumps-max-skip=15 -falign-loops-max-skip=15 -mdynamic-no-pic"
+		else
+			if [ "$os" = "MORPHOS" ]
+			then
+				CFLAGS="$CFLAGS -I/gg/os-include -noixemul -fstrict-aliasing -fexpensive-optimizations"
+				CFLAGS="$CFLAGS -mcpu=604 -fno-inline -mstring -mmultiple"
+			fi
+
+			CFLAGS="$CFLAGS -O2 -fomit-frame-pointer"
+		fi
+
+		if [ "$enable_profiling" != "0" ]
+		then
+			CFLAGS="$CFLAGS -pg"
+			LDFLAGS="$LDFLAGS -pg"
+		fi
+	else
+		if [ "$enable_profiling" != "0" ]
+		then
+			CFLAGS="$CFLAGS -p"
+			LDFLAGS="$LDFLAGS -pg"
+		fi
+	fi
+
+	# Enable some things only for certain GCC versions
+	cxx_version=`$cxx_host -dumpversion | cut -c 1,3`
+
+	if [ $cxx_version -ge 29 ]
+	then
+		CFLAGS="$CFLAGS -O -Wall -Wno-multichar -Wsign-compare -Wundef"
+		CFLAGS="$CFLAGS -Wwrite-strings -Wpointer-arith"
+	fi
+
+	if [ $cxx_version -ge 30 ]
+	then
+		CFLAGS="$CFLAGS -W -Wno-unused-parameter"
+	fi
+
+	if [ "$os" = "CYGWIN" ]
+	then
+		CFLAGS="$CFLAGS -mwin32"
+		LDFLAGS="$LDFLAGS -mwin32"
+	fi
+	if [ "$os" = "MINGW" ] || [ "$os" = "CYGWIN" ]
+	then
+		CFLAGS="$CFLAGS -mno-cygwin"
+		LDFLAGS="$LDFLAGS -mno-cygwin"
+	fi
+
+	if [ "$os" = "CYGWIN" ] || [ "$os" = "MINGW" ]
+	then
+		LDFLAGS="$LDFLAGS -Wl,--subsystem,windows"
+		LIBS="$LIBS -lws2_32"
+	fi
+
+	if [ "$os" != "CYGWIN" ] && [ "$os" != "MINGW" ]
+	then
+		LIBS="$LIBS -lc"
+	fi
+
+	if [ "$os" = "MORPHOS" ]
+	then
+		# -Wstrict-prototypes generates much noise because of system headers
+		CFLAGS="$CFLAGS -Wno-strict-prototypes"
+	fi
+
+	if [ "$os" = "OSX" ]
+	then
+		LDFLAGS="$LDFLAGS -framework Cocoa"
+		if [ "$enable_dedicated" = "0" ]
+		then
+			LIBS="$LIBS -framework QuickTime"
+		fi
+	fi
+
+	if [ "$os" = "BEOS" ]
+	then
+		LIBS="$LIBS -l -lbe"
+	fi
+
+	# Most targets act like UNIX, just with some additions
+	if [ "$os" = "BEOS" ] || [ "$os" = "OSX" ] || [ "$os" = "MORPHOS" ] || [ "$os" = "FREEBSD" ] || [ "$os" = "SUNOS" ] || [ "$os" = "OS2" ]
+	then
+		CFLAGS="$CFLAGS -DUNIX"
+	fi
+	# And others like Windows
+	if [ "$os" = "MINGW" ] || [ "$os" = "CYGWIN" ]
+	then
+		CFLAGS="$CFLAGS -DWIN"
+	fi
+
+	# Network :)
+	CFLAGS="$CFLAGS -DENABLE_NETWORK"
+	if [ "$os" = "BEOS" ]
+	then
+		LDFLAGS="$LDFLAGS -lbind -lsocket"
+	fi
+
+	if [ "$os" = "SUNOS" ]
+	then
+		LDFLAGS="$LDFLAGS -lnsl -lsocket"
+	fi
+
+	if [ "$enable_static" != "0" ]
+	then
+		# OSX can't handle -static in LDFLAGS
+		if [ "$os" != "OSX" ]
+		then
+			LDFLAGS="$LDFLAGS -static"
+		fi
+	fi
+
+	if [ "$enable_assert" = "0" ]
+	then
+		CFLAGS="$CFLAGS -DNDEBUG"
+	fi
+
+	if [ -n "$revision" ]
+	then
+		log 1 "checking revision... $revision"
+		log 1 "WARNING: we do not advise you to use this setting"
+		log 1 "WARNING: in most cases it is not safe for network use"
+		log 1 "WARNING: USE WITH CAUTION!"
+
+		sleep 5
+	elif [ -f "$ROOT_DIR/version" ]
+	then
+		revision="`cat $ROOT_DIR/version`"
+
+		log 1 "checking revision... $revision"
+	else
+		revision=""
+
+		log 1 "checking revision... svn detection"
+	fi
+
+	# We use MySQL
+	LIBS="$LIBS -lmysqlclient"
+
+	log 1 "using CFLAGS... $CFLAGS $CC_CFLAGS"
+	log 1 "using LDFLAGS... $LIBS $LDFLAGS"
+
+	# Makedepend doesn't like something like: -isysroot /OSX/blabla
+	#  so convert it to: -isysroot -OSX/blabla. makedepend just ignores
+	#  any - command it doesn't know, so we are pretty save.
+	# Lovely hackish, not?
+	# Btw, this almost always comes from outside the configure, so it is
+	#  not something we can control.
+	if [ "$with_makedepend" != "0" ]
+	then
+		cflags_makedep="` echo "$CFLAGS" | sed 's# /# -#g'`"
+	else
+		makedepend=""
+	fi
+}
+
+check_compiler() {
+	# Params:
+	# $1 - Type for message (build / host)
+	# $2 - What to fill with the found compiler
+	# $3 - System to try
+	# $4 - Compiler to try
+	# $5 - Env-setting to try
+	# $6 - GCC alike to try
+	# $7 - CC alike to try
+	# $8 - "0" gcc, "1" g++, "2" windres, "3" strip, "4" lipo
+	# $9 - What the command is to check for
+
+	if [ -n "$3" ]
+	then
+		# Check for system
+		machine=`$3-$6 $9 2>/dev/null`
+		ret=$?
+		eval "$2=$3-$6"
+
+		log 2 "executing $3-$6 $9"
+		log 2 "  returned $machine"
+		log 2 "  exit code $ret"
+
+		if ( [ -z "$machine" ] && [ "$8" != "3" ] ) || [ "$ret" != "0" ]
+		then
+			log 1 "checking $1... $3-$6 not found"
+			log 1 "I couldn't detect any $6 binary for $3"
+			exit 1
+		fi
+
+		if [ "$machine" != "$3" ] && ( [ "$8" = "0" ] || [ "$8" = "1" ] )
+		then
+			log 1 "checking $1... expected $3, found $machine"
+			log 1 "the compiler suggests it doesn't build code for the machine you specified"
+			exit 1
+		fi
+	elif [ -n "$4" ]
+	then
+		# Check for manual compiler
+		machine=`$4 $9 2>/dev/null`
+		ret=$?
+		eval "$2=$4"
+
+		log 2 "executing $4 $9"
+		log 2 "  returned $machine"
+		log 2 "  exit code $ret"
+
+		if ( [ -z "$machine" ] && [ "$8" != "3" ] ) || [ "$ret" != "0" ]
+		then
+			log 1 "checking $1... $4 not found"
+			log 1 "the selected binary doesn't seem to be a $6 binary"
+			exit 1
+		fi
+	else
+		# Nothing given, autodetect
+
+		if [ -n "$5" ]
+		then
+			machine=`$5 $9 2>/dev/null`
+			ret=$?
+			eval "$2=$5"
+
+			log 2 "executing $5 $9"
+			log 2 "  returned $machine"
+			log 2 "  exit code $ret"
+
+			# The user defined a GCC that doesn't reply to $9.. abort
+			if ( [ -z "$machine" ] && [ "$8" != "3" ] ) || [ "$ret" != "0" ]
+			then
+				log 1 "checking $1... $5 unusable"
+				log 1 "the CC environment variable is set, but it doesn't seem to be a $6 binary"
+				log 1 "please redefine the CC/CXX environment to a $6 binary"
+				exit 1
+			fi
+		else
+			log 2 "checking $1... CC/CXX not set (skipping)"
+
+			# No $5, so try '$6'
+			machine=`$6 $9 2>/dev/null`
+			ret=$?
+			eval "$2=$6"
+
+			log 2 "executing $6 $9"
+			log 2 "  returned $machine"
+			log 2 "  exit code $ret"
+
+			if ( [ -z "$machine" ] && [ "$8" != "3" ] ) || [ "$ret" != "0" ]
+			then
+				# Maybe '$7'?
+				machine=`$7 $9 2>/dev/null`
+				ret=$?
+				eval "$2=$7"
+
+				log 2 "executing $7 $9"
+				log 2 "  returned $machine"
+				log 2 "  exit code $ret"
+
+				# All failed, abort
+				if [ -z "$machine" ]
+				then
+					log 1 "checking $1... $6 not found"
+					log 1 "I couldn't detect any $6 binary on your system"
+					log 1 "please define the CC/CXX environment to where it is located"
+
+					exit 1
+				fi
+			fi
+		fi
+	fi
+
+	if [ "$8" != "0" ]
+	then
+		eval "res=\$$2"
+		log 1 "checking $1... $res"
+	else
+		log 1 "checking $1... $machine"
+	fi
+}
+
+check_host() {
+	# By default the host is the build
+	if [ -z "$host" ]; then host="$build"; fi
+	check_compiler "host system type" "cxx_host" "$host" "$cxx_host" "$CXX" "g++" "c++" "1" "-dumpmachine"
+}
+
+check_strip() {
+	if [ "$os" = "OSX" ]
+	then
+		# Most targets have -V in strip, to see if they exists... OSX doesn't.. so execute something
+		echo "int main(int argc, char *argv[]) { }" > strip.test.c
+		$cxx_host strip.test.c -o strip.test
+		check_compiler "host strip" "strip" "$host" "$strip" "$STRIP" "strip" "strip" "3" "strip.test"
+		rm -f strip.test.c strip.test
+	else
+		check_compiler "host strip" "strip" "$host" "$strip" "$STRIP" "strip" "strip" "3" "-V"
+	fi
+}
+
+check_makedepend() {
+	if [ "$with_makedepend" = "0" ]
+	then
+		log 1 "checking makedepend... disabled"
+		return
+	fi
+
+	if [ "$with_makedepend" = "1" ] || [ "$with_makedepend" = "2" ]
+	then
+		makedepend="makedepend"
+	else
+		makedepend="$with_makedepend"
+	fi
+
+	rm -f makedepend.tmp
+	touch makedepend.tmp
+	res=`$makedepend -fmakedepend.tmp 2>/dev/null`
+	res=$?
+	log 2 "executing $makedepend -f makedepend.tmp"
+	log 2 "  returned `cat makedepend.tmp`"
+	log 2 "  exit code $ret"
+
+	if [ -z "`cat makedepend.tmp`" ]
+	then
+		rm -f makedepend.tmp makedepend.tmp.bak
+
+		if [ "$with_makedepend" = "2" ]
+		then
+			log 1 "checking makedepend... not found"
+
+			log 1 "I couldn't detect any makedepend on your system"
+			log 1 "please locate it via --makedepend=[binary]"
+
+			exit 1
+		elif [ "$with_makedepend" != "1" ]
+		then
+			log 1 "checking makedepend... $makedepend not found"
+
+			log 1 "the selected file doesn't seem to be a valid makedepend binary"
+
+			exit 1
+		else
+			log 1 "checking makedepend... not found"
+
+			with_makedepend="0"
+			return
+		fi
+	fi
+
+	rm -f makedepend.tmp makedepend.tmp.bak
+
+	log 1 "checking makedepend... $makedepend"
+}
+
+detect_os() {
+	if [ $os = "DETECT" ]
+	then
+		# Detect UNIX, OSX, FREEBSD, MORPHOS, BEOS, SUNOS, CYGWIN, MINGW and OS2
+
+		# Try first via dumpmachine, then via uname
+		os=`echo "$host" | tr [:upper:] [:lower:] | awk '
+					/linux/        { print "UNIX";    exit}
+					/darwin/       { print "OSX";     exit}
+					/freebsd/      { print "FREEBSD"; exit}
+					/morphos/      { print "MORPHOS"; exit}
+					/beos/         { print "BEOS";    exit}
+					/sunos/        { print "SUNOS";   exit}
+					/cygwin/       { print "CYGWIN";  exit}
+					/mingw/        { print "MINGW";   exit}
+					/os\/2/        { print "OS2";     exit}
+		'`
+
+		if [ -z "$os" ]
+		then
+			os=`LC_ALL=C uname | tr [:upper:] [:lower:] | awk '
+					/linux/        { print "UNIX";    exit}
+					/darwin/       { print "OSX";     exit}
+					/freebsd/      { print "FREEBSD"; exit}
+					/morphos/      { print "MORPHOS"; exit}
+					/beos/         { print "BEOS";    exit}
+					/sunos/        { print "SUNOS";   exit}
+					/cygwin/       { print "CYGWIN";  exit}
+					/mingw/        { print "MINGW";   exit}
+					/os\/2/        { print "OS2";     exit}
+			'`
+		fi
+
+		if [ -z "$os" ]
+		then
+			log 1 "detecting OS... none detected"
+			log 1 "I couldn't detect your OS. Please use --with-os=OS to force one"
+			log 1 "Allowed values are: UNIX, OSX, FREEBSD, MORPHOS, BEOS, SUNOS, CYGWIN, and MINGW"
+			exit 1
+		fi
+
+		log 1 "detecting OS... $os"
+	else
+		log 1 "forcing OS... $os"
+	fi
+}
+
+_detect_sort() {
+	sort_test_in="d
+a
+c
+b"
+
+	sort_test_out="a
+b
+c
+d"
+
+	log 2 "running echo <array> | $1"
+
+	if [ "`echo \"$sort_test_in\" | $1 2>/dev/null`" = "$sort_test_out" ]
+	then
+		sort="$1"
+		log 2 "  result was valid"
+	else
+		log 2 "  result was invalid"
+	fi
+}
+
+detect_sort() {
+	if [ "$with_sort" = "0" ]
+	then
+		log 1 "checking sort... disabled"
+
+		return
+	fi
+
+	if [ "$with_sort" = "1" ] || [ "$with_sort" = "2" ]
+	then
+		_detect_sort "sort"
+		if [ -z "$sort" ]; then _detect_sort "/sbin/sort"; fi
+		if [ -z "$sort" ]; then _detect_sort "/usr/sbin/sort"; fi
+		if [ -z "$sort" ]; then _detect_sort "/usr/local/sbin/sort"; fi
+		if [ -z "$sort" ]; then _detect_sort "/bin/sort"; fi
+		if [ -z "$sort" ]; then _detect_sort "/usr/bin/sort"; fi
+		if [ -z "$sort" ]; then _detect_sort "/usr/local/bin/sort"; fi
+	else
+		_detect_sort "$with_sort"
+	fi
+
+	if [ -z "$sort" ]
+	then
+		if [ "$with_sort" = "2" ]
+		then
+			log 1 "checking sort... not found"
+
+			log 1 "configure: error: couldn't detect sort on your system"
+			exit 1
+		elif [ "$with_sort" != "1" ]
+		then
+			log 1 "checking sort... $with_sort not found"
+
+			log 1 "configure: error: '$with_sort' doesn't look like a sort to me"
+			log 1 "configure: error: please verify its location and function and try again"
+
+			exit 1
+		else
+			log 1 "checking sort... not found"
+		fi
+	else
+		log 1 "checking sort... $sort"
+	fi
+}
+
+make_sed() {
+	OBJS_DIR="$BASE_OBJS_DIR/$OBJS_SUBDIR"
+
+	# All the data needed to compile a single target
+	#  Make sure if you compile multiple targets to
+	#  use multiple OBJS_DIR, because all in-between
+	#  binaries are stored in there, and nowhere else.
+	SRC_REPLACE="
+		s#!!CXX_HOST!!#$cxx_host#g;
+		s#!!STRIP!!#$strip $strip_arg#g;
+		s#!!CFLAGS!!#$CFLAGS#g;
+		s#!!CC_CFLAGS!!#$CC_CFLAGS#g;
+		s#!!CFLAGS_BUILD!!#$CFLAGS_BUILD#g;
+		s#!!STRGEN_FLAGS!!#$strgen_flags#g;
+		s#!!LIBS!!#$LIBS#g;
+		s#!!LDFLAGS!!#$T_LDFLAGS#g;
+		s#!!BIN_DIR!!#$BIN_DIR#g;
+		s#!!ROOT_DIR!!#$ROOT_DIR#g;
+		s#!!SOURCE_LIST!!#$SOURCE_LIST#g;
+		s#!!OBJS_DIR!!#$OBJS_DIR#g;
+		s#!!SRC_DIR!!#$SRC_DIR#g;
+		s#!!MASTERSERVER!!#$MASTERSERVER#g;
+		s#!!UPDATER!!#$UPDATER#g;
+		s#!!MAKEDEPEND!!#$makedepend#g;
+		s#!!CFLAGS_MAKEDEP!!#$cflags_makedep#g;
+		s#!!SORT!!#$sort#g;
+		s#!!CONFIG_CACHE_COMPILER!!#config.cache.compiler#g;
+		s#!!CONFIG_CACHE_LINKER!!#config.cache.linker#g;
+		s#!!CONFIG_CACHE_SOURCE!!#config.cache.source#g;
+		s#!!CONFIG_CACHE_VERSION!!#config.cache.version#g;
+		s#!!CONFIG_CACHE_SOURCE_LIST!!#config.cache.source.list#g;
+		s#!!OBJS_MASTERSERVER!!#$OBJS_MASTERSERVER#g;
+		s#!!OBJS_UPDATER!!#$OBJS_UPDATER#g;
+		s#!!OBJS!!#$OBJS#g;
+		s#!!OS!!#$os#g;
+		s#!!CONFIGURE_FILES!!#$CONFIGURE_FILES#g;
+		s#!!REVISION!!#$revision#g;
+	"
+}
+
+generate_main() {
+	make_sed
+
+	# Create the main Makefile
+	echo "Generating Makefile..."
+	cat $ROOT_DIR/Makefile.in | sed "$SRC_REPLACE" > Makefile
+	echo "# Auto-generated file -- DO NOT EDIT" > Makefile.am
+	echo "" > Makefile.am
+	# Make the copy of the source-list, so we don't trigger an unwanted recompile
+	cp $SOURCE_LIST config.cache.source.list
+	# Make sure config.cache is OLDER then config.cache.source.list
+	touch config.cache
+}
+
+generate_src() {
+	STAGE=$1
+
+	make_sed
+
+	# Create the source file
+	mkdir -p $OBJS_DIR
+
+	echo "Generating objs/Makefile..."
+	cat $ROOT_DIR/Makefile.src.in | sed "$SRC_REPLACE" > $OBJS_DIR/Makefile
+	echo "DIRS += $OBJS_DIR" >> Makefile.am
+	echo "SRC_DIRS += $OBJS_DIR" >> Makefile.am
+}
+
+showhelp() {
+	echo "'configure' configures OpenTTD."
+	echo ""
+	echo "Usage: $0 [OPTION]... [VAR=VALUE]..."
+	echo ""
+	echo "To assign environment variables (e.g., CXX, CFLAGS...), specify them as"
+	echo "VAR=VALUE.  See below for descriptions of some of the useful variables."
+	echo ""
+	echo "Defaults for the options are specified in brackets."
+	echo ""
+	echo "Configuration:"
+	echo "  -h, --help                     display this help and exit"
+	echo ""
+	echo "System types:"
+	echo "  --host=HOST                    cross-compile to build programs to run"
+	echo "                                 on HOST [DETECT]"
+	echo "  --strip=STRIP                  the strip to use [HOST-strip]"
+	echo "  --os=OS                        the OS we are compiling for [DETECT]"
+	echo "                                 DETECT/UNIX/OSX/FREEBSD/MORPHOS/BEOS/"
+	echo "                                 SUNOS/CYGWIN/MINGW"
+	echo "  --endian=ENDIAN                set the endian of the HOST (AUTO/LE/BE)"
+	echo "  --revision=rXXXX               overwrite the revision detection."
+	echo "                                 Use with care!"
+	echo ""
+	echo "Features and packages:"
+	echo "  --enable-debug[=LVL]           enable debug-mode (LVL=[0123], 0 is release)"
+	echo "  --enable-profiling             enables profiling"
+	echo "  --enable-static                enable static compile (doesn't work for"
+	echo "                                 all HOSTs)"
+	echo "  --disable-assert               disable asserts (continue on errors)"
+	echo "  --disable-strip                disable any possible stripping"
+	echo "  --with-makedepend[=makedepend] enables makedepend support"
+	echo ""
+	echo "Some influential environment variables:"
+	echo "  CXX                            C compiler command"
+	echo "  CFLAGS                         C compiler flags"
+	echo "  LDFLAGS                        linker flags, e.g. -L<lib dir> if you"
+	echo "                                 have libraries in a nonstandard"
+	echo "                                 directory <lib dir>"
+	echo ""
+	echo "Use these variables to override the choices made by 'configure' or to help"
+	echo "it to find libraries and programs with nonstandard names/locations."
+}

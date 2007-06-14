@@ -1,0 +1,64 @@
+# Auto-generated file -- DO NOT EDIT
+
+# Check if we want to show what we are doing
+ifdef VERBOSE
+	Q =
+else
+	Q = @
+endif
+
+include Makefile.am
+
+SOURCE_LIST = !!SOURCE_LIST!!
+CONFIG_CACHE_SOURCE_LIST = !!CONFIG_CACHE_SOURCE_LIST!!
+CONFIGURE_FILES = !!CONFIGURE_FILES!!
+
+RES := $(shell if ! [ -f $(CONFIG_CACHE_SOURCE_LIST) ] || [ -n "`cmp $(CONFIG_CACHE_SOURCE_LIST) $(SOURCE_LIST)`" ]; then cp $(SOURCE_LIST) $(CONFIG_CACHE_SOURCE_LIST); fi )
+
+all: config.cache
+	@for dir in $(DIRS); do \
+		$(MAKE) -C $$dir all; \
+	done
+
+config.cache: $(CONFIG_CACHE_SOURCE_LIST) $(CONFIGURE_FILES)
+ifeq ($(shell if test -f config.cache; then echo 1; fi), 1)
+	@echo "----------------"
+	@echo "The system detected that source.list or any configure file is altered."
+	@echo " Going to reconfigure with last known settings..."
+	@echo "----------------"
+# Make sure we don't lock config.cache
+	@$(shell cat config.cache) || exit 1
+	@echo "----------------"
+	@echo "Reconfig done. Now compiling..."
+	@echo "----------------"
+else
+	@echo "----------------"
+	@echo "Have not found a configuration, please run configure first."
+	@echo "----------------"
+	@exit 1
+endif
+
+clean:
+	@for dir in $(DIRS); do \
+		$(MAKE) -C $$dir clean; \
+	done
+	$(Q)rm -rf $(BUNDLE_TARGET)
+
+mrproper:
+	@for dir in $(DIRS); do \
+		$(MAKE) -C $$dir mrproper; \
+		rm -f $$dir/Makefile; \
+	done
+	$(Q)rm -rf objs
+	$(Q)rm -f Makefile Makefile.am
+	$(Q)rm -f $(CONFIG_CACHE_SOURCE_LIST) config.cache config.log
+
+depend:
+	@for dir in $(SRC_DIRS); do \
+		$(MAKE) -C $$dir depend; \
+	done
+
+%.o:
+	@for dir in $(SRC_DIRS); do \
+		$(MAKE) -C $$dir $@; \
+	done

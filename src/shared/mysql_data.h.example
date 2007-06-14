@@ -1,0 +1,7 @@
+/* $Id$ */
+
+#define MYSQL_HOST "127.0.0.1"
+#define MYSQL_USER "ottd"
+#define MYSQL_PASS "mypassword"
+#define MYSQL_DB   "servers"
+#define MYSQL_PORT 3306

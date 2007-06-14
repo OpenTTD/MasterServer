@@ -1,0 +1,112 @@
+#!/bin/sh
+
+# Find out where configure is (in what dir)
+ROOT_DIR="`dirname $0`"
+ROOT_DIR="`cd $ROOT_DIR && pwd`"
+
+PWD="`pwd`"
+PREFIX="`pwd`/bin"
+
+. $ROOT_DIR/config.lib
+
+# Set default dirs
+OBJS_DIR="$PWD/objs"
+BASE_OBJS_DIR="$OBJS_DIR"
+BIN_DIR="$PREFIX"
+SRC_DIR="$ROOT_DIR/src"
+SOURCE_LIST="$ROOT_DIR/source.list"
+
+if [ "$1" = "--reconfig" ]
+then
+	if ! [ -f "config.cache" ]
+	then
+		echo "can't reconfigure, because never configured before"
+		exit 1
+	fi
+	# Make sure we don't lock config.cache
+	configure=`cat config.cache`
+	$configure
+	exit $?
+fi
+
+set_default
+detect_params "$@"
+save_params
+check_params
+make_cflags_and_ldflags
+
+EXE=""
+if [ "$os" = "MINGW" ] || [ "$os" = "CYGWIN" ] || [ "$os" = "OS2" ]
+then
+	EXE=".exe"
+fi
+MASTERSERVER=ottd_master$EXE # OpenTTD Master Server
+UPDATER=ottd_updater$EXE     # OpenTTD Server List Updater
+
+if [ -z "$sort" ]
+then
+	PIPE_SORT="sed s/a/a/"
+else
+	PIPE_SORT="$sort"
+fi
+
+for type in masterserver updater all
+do
+	# Read the source.list and process it
+	tmp="`cat $ROOT_DIR/source.list | tr '\r' '\n' | awk '
+		{  }
+		/^(	*)#end/  { if (deep == skip) { skip -= 1; } deep -= 1; next; }
+		/^(	*)#else/ { if (deep == skip) { skip -= 1; } else if (deep - 1 == skip) { skip += 1; } next; }
+		/^(	*)#if/   {
+			gsub("	", "", $0);
+			gsub("^#if ", "", $0);
+
+			if (deep != skip) { deep += 1; next; }
+
+			deep += 1;
+
+			if ($0 == "MASTERSERVER" && "'$type'" != "masterserver" && "'$type'" != "all") { next; }
+			if ($0 == "UPDATER"      && "'$type'" != "updater"      && "'$type'" != "all") { next; }
+
+			skip += 1;
+
+			next;
+		}
+		/^(	*)#/ { next }
+		/^$/ { next }
+		{
+			if (deep == skip) {
+				gsub("	", "", $0);
+				gsub("\.cpp", ".o", $0);
+				print $0;
+			}
+		}
+	' | $PIPE_SORT`"
+
+	tmp="` echo \"$tmp\" | awk ' { ORS = " " } /\.o$/ { print $0; }'`"
+
+	if [ "$type" = "masterserver" ]
+	then
+		OBJS_MASTERSERVER=$tmp
+	else
+		if [ "$type" = "updater" ]
+		then
+			OBJS_UPDATER=$tmp
+		else
+			OBJS=$tmp
+		fi
+	fi
+done
+
+# In makefiles, we always use -u for sort
+if [ -z "$sort" ]
+then
+	sort="sed s/a/a/"
+else
+	sort="$sort -u"
+fi
+
+CONFIGURE_FILES="$ROOT_DIR/configure $ROOT_DIR/config.lib $ROOT_DIR/Makefile.in $ROOT_DIR/Makefile.src.in"
+
+generate_main
+generate_src

@@ -1,0 +1,22 @@
+# Shared files
+shared/date.cpp
+shared/debug.cpp
+shared/mysql.cpp
+shared/network/core/core.cpp
+shared/network/core/packet.cpp
+shared/network/core/udp.cpp
+shared/server.cpp
+shared/sql.cpp
+shared/string.cpp
+
+#if MASTERSERVER
+masterserver/handler.cpp
+masterserver/main.cpp
+masterserver/udp.cpp
+#endif
+
+#if UPDATER
+updater/handler.cpp
+updater/main.cpp
+updater/udp.cpp
+#endif
