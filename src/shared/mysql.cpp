@@ -192,7 +192,7 @@ void MySQL::UpdateNetworkGameInfo(const char *ip, uint16 port, const NetworkGame
 		this->MD5sumToString(c, md5sum);
 
 		snprintf(sql, sizeof(sql), "INSERT INTO servers_newgrfs SET server_id='%s', "
-				"grfid='%d', md5sum='%s'", server_id, BSWAP32(c->grfid), md5sum);
+				"grfid='%u', md5sum='%s'", server_id, BSWAP32(c->grfid), md5sum);
 		res = MySQLQuery(sql);
 
 		if (res != NULL) mysql_free_result(res);
@@ -263,7 +263,7 @@ void MySQL::AddGRF(const GRFIdentifier *grf)
 	this->MD5sumToString(grf, md5sum);
 
 	snprintf(sql, sizeof(sql), "INSERT IGNORE INTO newgrfs SET name='Not yet known',"
-			"grfid='%d', md5sum='%s', unknown='1'", BSWAP32(grf->grfid), md5sum);
+			"grfid='%u', md5sum='%s', unknown='1'", BSWAP32(grf->grfid), md5sum);
 	MYSQL_RES *res = MySQLQuery(sql);
 
 	if (res != NULL) mysql_free_result(res);
@@ -278,7 +278,7 @@ void MySQL::SetGRFName(const GRFIdentifier *grf, const char *name)
 	this->MD5sumToString(grf, md5sum);
 	this->Quote(safe_name, sizeof(safe_name), name);
 
-	snprintf(sql, sizeof(sql), "UPDATE newgrfs SET name='%s', unknown='0' WHERE grfid='%d' AND md5sum='%s' AND unknown='1'",
+	snprintf(sql, sizeof(sql), "UPDATE newgrfs SET name='%s', unknown='0' WHERE grfid='%u' AND md5sum='%s' AND unknown='1'",
 			safe_name, BSWAP32(grf->grfid), md5sum);
 	MYSQL_RES *res = MySQLQuery(sql);
 
