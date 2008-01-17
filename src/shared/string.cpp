@@ -1,7 +1,7 @@
 /* $Id$ */
 
 #include "stdafx.h"
-#include "string.h"
+#include "string_func.h"
 #include "macros.h"
 #include "debug.h"
 #include "helpers.hpp"

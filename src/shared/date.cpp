@@ -1,7 +1,7 @@
 /* $Id$ */
 
 #include "stdafx.h"
-#include "date.h"
+#include "date_func.h"
 
 #define M(a, b) ((a << 5) | b)
 static const uint16 _month_date_from_year_day[] = {

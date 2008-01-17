@@ -2,7 +2,7 @@
 
 #include "shared/stdafx.h"
 #include "shared/debug.h"
-#include "shared/string.h"
+#include "shared/string_func.h"
 #include "updater.h"
 
 /**

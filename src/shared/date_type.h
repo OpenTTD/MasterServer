@@ -1,7 +1,7 @@
 /* $Id$ */
 
-#ifndef DATE_H
-#define DATE_H
+#ifndef DATE_TYPE_H
+#define DATE_TYPE_H
 
 /** The minimum starting year/base year of the original TTD */
 #define ORIGINAL_BASE_YEAR 1920
@@ -30,8 +30,4 @@ struct YearMonthDay {
 	Day   day;   ///< The day of the Date
 };
 
-void ConvertDateToYMD(Date date, YearMonthDay *ymd);
-Date ConvertYMDToDate(Year year, Month month, Day day);
-void DateToString(Date date, char *dest, size_t length);
-
-#endif /* DATE_H */
+#endif /* DATE_TYPE_H */

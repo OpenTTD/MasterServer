@@ -5,7 +5,7 @@
 #include <stdarg.h>
 #include <time.h>
 #include "debug.h"
-#include "string.h"
+#include "string_func.h"
 
 enum {
 	BUFFER_LENGTH = 1024

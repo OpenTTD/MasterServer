@@ -4,6 +4,8 @@
 #include "debug.h"
 #include "mysql.h"
 #include "mysql_data.h"
+#include "core/bitmath_func.hpp"
+#include "date_func.h"
 #include <mysql/mysql.h>
 #include <string.h>
 

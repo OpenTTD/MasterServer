@@ -40,7 +40,7 @@ static inline bool StrEmpty(const char* s) { return s[0] == '\0'; }
 static inline int ttd_strnlen(const char *str, int maxlen)
 {
 	const char *t;
-	for (t = str; *t != '\0' && t - str < maxlen; t++);
+	for (t = str; *t != '\0' && t - str < maxlen; t++) {}
 	return t - str;
 }
 
