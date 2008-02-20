@@ -2,6 +2,7 @@
 shared/date.cpp
 shared/debug.cpp
 shared/mysql.cpp
+shared/core/alloc_func.cpp
 shared/network/core/core.cpp
 shared/network/core/packet.cpp
 shared/network/core/udp.cpp
