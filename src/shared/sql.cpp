@@ -1,7 +1,7 @@
 /* $Id$ */
 
 #include "stdafx.h"
-#include "server.h"
+#include "udp_server.h"
 #include "sql.h"
 
 /**

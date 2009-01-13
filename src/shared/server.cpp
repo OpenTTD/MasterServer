@@ -68,11 +68,7 @@ static void ForkServer(const char *logfile, const char *application_name)
 }
 #endif
 
-/**
- * Multi os compatible sleep function
- * @param milliseconds to sleep
- */
-static void CSleep(int milliseconds)
+void CSleep(int milliseconds)
 {
 #ifdef WIN32
 	Sleep(milliseconds);
@@ -104,37 +100,14 @@ static void CSleep(int milliseconds)
 #endif /* UNIX */
 }
 
-QueriedServer::	QueriedServer(uint32 address, uint16 port)
-{
-	this->server_address.sin_family      = AF_INET;
-	this->server_address.sin_addr.s_addr = address;
-	this->server_address.sin_port        = port;
-
-	this->attempts = 0;
-	this->frame    = _server->GetFrame();
-}
-
-void QueriedServer::SendFindGameServerPacket(NetworkUDPSocketHandler *socket)
-{
-	/* Send game info query */
-	Packet packet(PACKET_UDP_CLIENT_FIND_SERVER);
-	socket->SendPacket(&packet, &this->server_address);
-}
-
-Server::Server(SQL *sql, const char *host, NetworkUDPSocketHandler *query_socket)
+Server::Server(SQL *sql)
 {
 	this->sql          = sql;
-	this->query_socket = query_socket;
-	this->frame        = 0;
 	this->stop_server  = false;
 
 	/* Launch network for a given OS */
 	if (!NetworkCoreInitialize()) {
 		error("Could not initialize the network");
-	}
-
-	if (!this->query_socket->Listen(inet_addr(host), 0, false)) {
-		error("Could not bind to %s:0\n", host);
 	}
 
 	assert(_server == NULL);
@@ -144,35 +117,15 @@ Server::Server(SQL *sql, const char *host, NetworkUDPSocketHandler *query_socket
 Server::~Server()
 {
 	/* Clean stuff up */
-	delete this->query_socket;
-
 	NetworkCoreShutdown();
+
 	_server = NULL;
-}
-
-void Server::ReceivePackets()
-{
-	this->query_socket->ReceivePackets();
-}
-
-void Server::CheckServers()
-{
-	QueriedServerMap::iterator iter = this->queried_servers.begin();
-
-	for (; iter != this->queried_servers.end();) {
-		QueriedServer *srv = iter->second;
-		iter++;
-		srv->DoAttempt(this);
-	}
 }
 
 extern const char *_revision; ///< SVN revision of this application
 
 void Server::Run(const char *logfile, const char *application_name, bool fork)
 {
-	byte small_frame = 0;
-	/* It is nice to know what revision we're running (shows up in the logs) */
-
 #ifdef UNIX
 	if (fork) ForkServer(logfile, application_name);
 
@@ -182,53 +135,14 @@ void Server::Run(const char *logfile, const char *application_name, bool fork)
 	signal(SIGQUIT, SignalHandler);
 #endif
 
+	/* It is nice to know what revision we're running (shows up in the logs) */
 	DEBUG(misc, 0, "Starting %s %s", application_name, _revision);
 
-	while (!this->stop_server) {
-		small_frame++;
-		/* We want _frame to be in (approximatelly) seconds (not 0.1 seconds) */
-		if (small_frame % 10 == 0) {
-			this->frame++;
-			small_frame = 0;
-
-			/* Check if we have servers that are expired */
-			this->CheckServers();
-		}
-
-		/* Check if we have any data on the socket */
-		this->ReceivePackets();
-		CSleep(100);
-	}
+	this->RealRun();
 
 	DEBUG(misc, 0, "Closing down sockets and database connection");
 
 	if (_log_file_fd != NULL) fclose(_log_file_fd);
-}
-
-QueriedServer *Server::GetQueriedServer(const struct sockaddr_in *addr)
-{
-	QueriedServerMap::iterator iter = this->queried_servers.find(addr);
-	if (iter == this->queried_servers.end()) return NULL;
-	return iter->second;
-}
-
-QueriedServer *Server::AddQueriedServer(QueriedServer *qs)
-{
-	QueriedServer *ret = this->RemoveQueriedServer(qs);
-
-	this->queried_servers[qs->GetServerAddress()] = qs;
-	return ret;
-}
-
-QueriedServer *Server::RemoveQueriedServer(QueriedServer *qs)
-{
-	QueriedServerMap::iterator iter = this->queried_servers.find(qs->GetServerAddress());
-	if (iter == this->queried_servers.end()) return NULL;
-
-	QueriedServer *ret = iter->second;
-	this->queried_servers.erase(iter);
-
-	return ret;
 }
 
 void ParseCommandArguments(int argc, char *argv[], char *hostname, size_t hostname_length, bool *fork, const char *application_name)

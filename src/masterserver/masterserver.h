@@ -3,7 +3,7 @@
 #ifndef MASTERSERVER_H
 #define MASTERSERVER_H
 
-#include "shared/server.h"
+#include "shared/udp_server.h"
 
 /**
  * @file masterserver/masterserver.h Configuration and classes used by the master server
@@ -28,10 +28,11 @@ public:
 	 * Creates a new queried server for the gameserver with the given address
 	 * @param query_address the address of the gameserver
 	 * @param server_port   the port to send gameserver requests to
+	 * @param frame         time of the last attempt
 	 */
-	MSQueriedServer(const sockaddr_in *query_address, uint16 server_port);
+	MSQueriedServer(const sockaddr_in *query_address, uint16 server_port, uint frame);
 
-	void DoAttempt(Server *server);
+	void DoAttempt(UDPServer *server);
 
 	/**
 	 * Gets the address this game server has used to query us.
@@ -43,7 +44,7 @@ public:
 /**
  * Code specific to the master server
  */
-class MasterServer : public Server {
+class MasterServer : public UDPServer {
 private:
 	bool update_serverlist_packet; ///< Whether to update the cached server list packet
 	Packet *serverlist_packet;     ///< The cached server list packet
@@ -67,7 +68,7 @@ public:
 
 	void ReceivePackets();
 
-	MSQueriedServer *GetQueriedServer(const struct sockaddr_in *client_addr) { return (MSQueriedServer*)Server::GetQueriedServer(client_addr); }
+	MSQueriedServer *GetQueriedServer(const struct sockaddr_in *client_addr) { return (MSQueriedServer*)UDPServer::GetQueriedServer(client_addr); }
 
 	void ServerStateChange() { this->update_serverlist_packet = true; }
 	Packet *GetServerListPacket(); ///< Gets an (relatively) up-to-date packet with all game servers

@@ -4,6 +4,7 @@
 #define MYSQL_H
 
 #include "shared/sql.h"
+#include "shared/mysql_data.h"
 
 /**
  * @file mysql.h Class definition for MySQL SQL backend
@@ -25,7 +26,7 @@ protected:
 	void UpdateNetworkGameInfo(const char *ip, uint16 port, const NetworkGameInfo *info);
 public:
 	/** Creates the connection to the SQL database */
-	MySQL();
+	MySQL(const char *host, const char *user, const char *passwd, const char *db, unsigned int port);
 
 	/** Frees all connections to the SQL database */
 	~MySQL();

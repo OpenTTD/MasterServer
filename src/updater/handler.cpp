@@ -10,7 +10,7 @@
 
 ///*** Checking for expiration of retries of servers ***///
 
-UpdaterQueriedServer::UpdaterQueriedServer(uint32 ip, uint16 port) : QueriedServer(ip, port)
+UpdaterQueriedServer::UpdaterQueriedServer(uint32 ip, uint16 port, uint frame) : QueriedServer(ip, port, frame)
 {
 	this->received_game_info = false;
 }
@@ -24,7 +24,7 @@ UpdaterQueriedServer::~UpdaterQueriedServer()
 	}
 }
 
-void UpdaterQueriedServer::DoAttempt(Server *server)
+void UpdaterQueriedServer::DoAttempt(UDPServer *server)
 {
 	if (this->frame + UPDATER_QUERY_TIMEOUT > server->GetFrame()) return;
 
@@ -104,7 +104,7 @@ void UpdaterQueriedServer::AddMissingGRF(const GRFIdentifier *grf)
 }
 
 
-Updater::Updater(SQL *sql, const char *host) : Server(sql, host, new UpdaterNetworkUDPSocketHandler(this))
+Updater::Updater(SQL *sql, const char *host) : UDPServer(sql, host, new UpdaterNetworkUDPSocketHandler(this))
 {
 	/* We reset the requery intervals, so all servers that are marked
 	 * on-line get an initial sweep on startup of the application. */
@@ -147,7 +147,7 @@ void Updater::MakeGRFKnown(const GRFIdentifier *grf, const char *name)
 void Updater::CheckServers()
 {
 	/* First handle the requeries of sent packets */
-	Server::CheckServers();
+	UDPServer::CheckServers();
 
 	if (this->GetFrame() % UPDATER_REQUERY_INTERVAL != 0) return;
 
@@ -162,7 +162,7 @@ void Updater::CheckServers()
 	uint count = this->sql->GetRequeryServers(requery, UPDATER_MAX_REQUERIED_SERVERS, UPDATER_SERVER_REQUERY_INTERVAL);
 
 	for (uint i = 0; i < count; i++) {
-		QueriedServer *qs = new UpdaterQueriedServer(requery[i].ip, htons(requery[i].port));
+		QueriedServer *qs = new UpdaterQueriedServer(requery[i].ip, htons(requery[i].port), this->GetFrame());
 
 		DEBUG(net, 4, "querying %s:%d",
 				inet_ntoa(qs->GetServerAddress()->sin_addr), ntohs(qs->GetServerAddress()->sin_port));

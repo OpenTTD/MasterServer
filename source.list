@@ -9,6 +9,7 @@ shared/network/core/udp.cpp
 shared/server.cpp
 shared/sql.cpp
 shared/string.cpp
+shared/udp_server.cpp
 
 #if MASTERSERVER
 masterserver/handler.cpp

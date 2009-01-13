@@ -53,7 +53,7 @@ DEF_UDP_RECEIVE_COMMAND(Master, PACKET_UDP_SERVER_REGISTER)
 	DEBUG(net, 3, "received a registration request from %s:%d",
 			inet_ntoa(client_addr->sin_addr), ntohs(client_addr->sin_port));
 
-	MSQueriedServer *qs = new MSQueriedServer(client_addr, htons(p->Recv_uint16()));
+	MSQueriedServer *qs = new MSQueriedServer(client_addr, htons(p->Recv_uint16()), this->ms->GetFrame());
 
 	/* Shouldn't happen ofcourse, but still ... */
 	if (this->HasClientQuit()) {
@@ -83,7 +83,7 @@ DEF_UDP_RECEIVE_COMMAND(Master, PACKET_UDP_SERVER_UNREGISTER)
 	DEBUG(net, 3, "received a unregistration request from %s:%d",
 			inet_ntoa(client_addr->sin_addr), ntohs(client_addr->sin_port));
 
-	QueriedServer *qs = new QueriedServer(client_addr->sin_addr.s_addr, htons(p->Recv_uint16()));
+	QueriedServer *qs = new QueriedServer(client_addr->sin_addr.s_addr, htons(p->Recv_uint16()), this->ms->GetFrame());
 
 	/* Shouldn't happen ofcourse, but still ... */
 	if (this->HasClientQuit()) {

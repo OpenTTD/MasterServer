@@ -4,7 +4,7 @@
 #define UPDATER_H
 
 #include <set>
-#include "shared/server.h"
+#include "shared/udp_server.h"
 
 /**
  * @file updater/updater.h Configuration and classes used by the updater
@@ -39,8 +39,9 @@ public:
 	 * the given address and port
 	 * @param ip   the ip address of the server
 	 * @param port the port of the server
+	 * @param frame time of last try
 	 */
-	UpdaterQueriedServer(uint32 ip, uint16 port);
+	UpdaterQueriedServer(uint32 ip, uint16 port, uint frame);
 
 	/** The obvious destructor */
 	~UpdaterQueriedServer();
@@ -49,7 +50,7 @@ public:
 	 * Checks whether it is time to retry, does that if needed
 	 * @param server the server to send all queries and such to
 	 */
-	void DoAttempt(Server *server);
+	void DoAttempt(UDPServer *server);
 
 	/**
 	 * Makes and sends the request for the NewGRFs we are missing the
@@ -83,7 +84,7 @@ public:
  * The updater periodically checks all game servers to check whether they
  * are still online and update their game information for the website.
  */
-class Updater : public Server {
+class Updater : public UDPServer {
 protected:
 	GRFList known_grfs; ///< The NewGRFs we have the name of
 public:
@@ -117,7 +118,7 @@ public:
 	 */
 	void MakeGRFKnown(const GRFIdentifier *grf, const char *name);
 
-	UpdaterQueriedServer *GetQueriedServer(const struct sockaddr_in *client_addr) { return (UpdaterQueriedServer*)Server::GetQueriedServer(client_addr); }
+	UpdaterQueriedServer *GetQueriedServer(const struct sockaddr_in *client_addr) { return (UpdaterQueriedServer*)UDPServer::GetQueriedServer(client_addr); }
 };
 
 /** Handler for the query socket of the updater */

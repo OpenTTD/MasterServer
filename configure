@@ -77,7 +77,7 @@ do
 		{
 			if (deep == skip) {
 				gsub("	", "", $0);
-				gsub("\.cpp", ".o", $0);
+				gsub(".cpp", ".o", $0);
 				print $0;
 			}
 		}

@@ -3,7 +3,6 @@
 #include "stdafx.h"
 #include "debug.h"
 #include "mysql.h"
-#include "mysql_data.h"
 #include "core/bitmath_func.hpp"
 #include "date_func.h"
 #include <mysql/mysql.h>
@@ -41,12 +40,12 @@ MYSQL_RES *MySQLQuery(const char *sql)
 }
 
 
-MySQL::MySQL()
+MySQL::MySQL(const char *host, const char *user, const char *passwd, const char *db, unsigned int port)
 {
 	_mysql = mysql_init(NULL);
 	if (_mysql == NULL) error("Unable to create mysql object");
 
-	if ((!mysql_real_connect(_mysql, MYSQL_HOST, MYSQL_USER, MYSQL_PASS, MYSQL_DB, MYSQL_PORT, NULL, 0))) {
+	if ((!mysql_real_connect(_mysql, host, user, passwd, db, port, NULL, 0))) {
 		error("Cannot connect to MySQL: %s", mysql_error(_mysql));
 	}
 

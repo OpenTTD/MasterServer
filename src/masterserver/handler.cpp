@@ -11,12 +11,12 @@
 
 /* Requerying of game servers */
 
-MSQueriedServer::MSQueriedServer(const sockaddr_in *query_address, uint16 server_port) : QueriedServer(query_address->sin_addr.s_addr, server_port)
+MSQueriedServer::MSQueriedServer(const sockaddr_in *query_address, uint16 server_port, uint frame) : QueriedServer(query_address->sin_addr.s_addr, server_port, frame)
 {
 	this->query_address = *(sockaddr_in*)query_address;
 }
 
-void MSQueriedServer::DoAttempt(Server *server)
+void MSQueriedServer::DoAttempt(UDPServer *server)
 {
 	/* Not yet waited long enough for a next attempt */
 	if (this->frame + SERVER_QUERY_TIMEOUT > server->GetFrame()) return;
@@ -41,7 +41,7 @@ void MSQueriedServer::DoAttempt(Server *server)
 	this->frame = server->GetFrame();
 }
 
-MasterServer::MasterServer(SQL *sql, const char *host, uint16 master_port) : Server(sql, host, new QueryNetworkUDPSocketHandler(this))
+MasterServer::MasterServer(SQL *sql, const char *host, uint16 master_port) : UDPServer(sql, host, new QueryNetworkUDPSocketHandler(this))
 {
 	this->serverlist_packet        = NULL;
 	this->update_serverlist_packet = true;
@@ -63,7 +63,7 @@ MasterServer::~MasterServer()
 
 void MasterServer::ReceivePackets()
 {
-	Server::ReceivePackets();
+	UDPServer::ReceivePackets();
 	this->master_socket->ReceivePackets();
 }
 

@@ -1,7 +1,7 @@
 /* $Id$ */
 
-#define MYSQL_HOST "127.0.0.1"
-#define MYSQL_USER "ottd"
-#define MYSQL_PASS "mypassword"
-#define MYSQL_DB   "servers"
-#define MYSQL_PORT 3306
+#define MYSQL_MSU_HOST "127.0.0.1"
+#define MYSQL_MSU_USER "ottd"
+#define MYSQL_MSU_PASS "mypassword"
+#define MYSQL_MSU_DB   "servers"
+#define MYSQL_MSU_PORT 3306
