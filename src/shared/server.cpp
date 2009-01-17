@@ -5,7 +5,7 @@
 #include "debug.h"
 
 /**
- * @file server.cpp Shared server (master server/updater) related functionality
+ * @file server.cpp Shared server (master server/updater/contentserver) related functionality
  */
 
 #ifdef __AMIGA__

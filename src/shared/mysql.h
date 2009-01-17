@@ -15,11 +15,10 @@ class MySQL : public SQL {
 protected:
 	/**
 	 * Rewrites and MD5 checksum into a hexadecimal string
-	 * @param grf  the GRF to get the MD5 checksum of
-	 * @param dest the buffer to write to
-	 * @pre sizeof(dest) >= sizeof(grf->md5sum) * 2 + 1
+	 * @param md5sum the MD5 checksum
+	 * @param dest   the buffer to write to
 	 */
-	void MD5sumToString(const GRFIdentifier *grf, char *dest);
+	void MD5sumToString(const uint8 md5sum[16], char *dest);
 
 	void MakeServerOnline(const char *ip, uint16 port);
 	void MakeServerOffline(const char *ip, uint16 port);
@@ -37,6 +36,10 @@ public:
 
 	void AddGRF(const GRFIdentifier *grf);
 	void SetGRFName(const GRFIdentifier *grf, const char *name);
+
+	bool FillContentDetails(ContentInfo info[], int length, ContentKey key, bool extra_data);
+	uint FindContentDetails(ContentInfo info[], int length, ContentType type, uint32 version);
+	void IncrementDownloadCount(ContentID id);
 
 	/**
 	 * Adds quotes and such about the to be quoted string to prevent SQL injections

@@ -813,6 +813,7 @@ make_sed() {
 		s#!!SRC_DIR!!#$SRC_DIR#g;
 		s#!!MASTERSERVER!!#$MASTERSERVER#g;
 		s#!!UPDATER!!#$UPDATER#g;
+		s#!!CONTENTSERVER!!#$CONTENTSERVER#g;
 		s#!!MAKEDEPEND!!#$makedepend#g;
 		s#!!CFLAGS_MAKEDEP!!#$cflags_makedep#g;
 		s#!!SORT!!#$sort#g;
@@ -823,6 +824,7 @@ make_sed() {
 		s#!!CONFIG_CACHE_SOURCE_LIST!!#config.cache.source.list#g;
 		s#!!OBJS_MASTERSERVER!!#$OBJS_MASTERSERVER#g;
 		s#!!OBJS_UPDATER!!#$OBJS_UPDATER#g;
+		s#!!OBJS_CONTENTSERVER!!#$OBJS_CONTENTSERVER#g;
 		s#!!OBJS!!#$OBJS#g;
 		s#!!OS!!#$os#g;
 		s#!!CONFIGURE_FILES!!#$CONFIGURE_FILES#g;

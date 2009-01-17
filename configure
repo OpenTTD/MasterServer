@@ -40,8 +40,9 @@ if [ "$os" = "MINGW" ] || [ "$os" = "CYGWIN" ] || [ "$os" = "OS2" ]
 then
 	EXE=".exe"
 fi
-MASTERSERVER=ottd_master$EXE # OpenTTD Master Server
-UPDATER=ottd_updater$EXE     # OpenTTD Server List Updater
+MASTERSERVER=ottd_master$EXE   # OpenTTD Master Server
+UPDATER=ottd_updater$EXE       # OpenTTD Server List Updater
+CONTENTSERVER=ottd_content$EXE # OpenTTD Content Server
 
 if [ -z "$sort" ]
 then
@@ -50,7 +51,7 @@ else
 	PIPE_SORT="$sort"
 fi
 
-for type in masterserver updater all
+for type in masterserver updater contentserver all
 do
 	# Read the source.list and process it
 	tmp="`cat $ROOT_DIR/source.list | tr '\r' '\n' | awk '
@@ -65,8 +66,9 @@ do
 
 			deep += 1;
 
-			if ($0 == "MASTERSERVER" && "'$type'" != "masterserver" && "'$type'" != "all") { next; }
-			if ($0 == "UPDATER"      && "'$type'" != "updater"      && "'$type'" != "all") { next; }
+			if ($0 == "MASTERSERVER"  && "'$type'" != "masterserver"  && "'$type'" != "all") { next; }
+			if ($0 == "UPDATER"       && "'$type'" != "updater"       && "'$type'" != "all") { next; }
+			if ($0 == "CONTENTSERVER" && "'$type'" != "contentserver" && "'$type'" != "all") { next; }
 
 			skip += 1;
 
@@ -93,7 +95,12 @@ do
 		then
 			OBJS_UPDATER=$tmp
 		else
-			OBJS=$tmp
+			if [ "$type" = "contentserver" ]
+			then
+				OBJS_CONTENTSERVER=$tmp
+			else
+				OBJS=$tmp
+			fi
 		fi
 	fi
 done

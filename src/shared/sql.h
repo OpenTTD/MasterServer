@@ -4,6 +4,7 @@
 #define SQL_H
 
 #include "shared/network/core/game.h"
+#include "shared/network/core/tcp_content.h"
 
 /**
  * @file sql.h Interface for persistent storage of data into a SQL server
@@ -102,6 +103,38 @@ public:
 	 * (gradually) be requeried in the event we have restarted.
 	 */
 	virtual void ResetRequeryIntervals() = 0;
+
+	/** Key where to search content with */
+	enum ContentKey {
+		CK_ID,           ///< Search based on the ID
+		CK_UNIQUEID,     ///< Search based on the unique ID
+		CK_UNIQUEID_MD5  ///< Search based on the unique ID and MD5 checksum
+	};
+
+	/**
+	 * Fill the content information of the given list of infos.
+	 * @param info   table to store the results in (and read the keys from)
+	 * @param length the length of the table
+	 * @param key    key to search the database with
+	 * @param extra_data whether to acquire the complex data, such as MD5 sum or dependencies
+	 * @return true if the query was succesfull, false otherwise.
+	 */
+	virtual bool FillContentDetails(ContentInfo info[], int length, ContentKey key, bool extra_data = true) = 0;
+
+	/**
+	 * Fill the content information of the given list of infos.
+	 * @param info   table to store the results in.
+	 * @param length the length of the table.
+	 * @param type   the type to get a listing from.
+	 * @return the number of items acquired from the database.
+	 */
+	virtual uint FindContentDetails(ContentInfo info[], int length, ContentType type, uint32 version) = 0;
+
+	/**
+	 * Increment the download count of the given content.
+	 * @param id the ID of the content.
+	 */
+	virtual void IncrementDownloadCount(ContentID id) = 0;
 };
 
 #endif /* SQL_H */

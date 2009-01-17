@@ -22,3 +22,12 @@ updater/handler.cpp
 updater/main.cpp
 updater/udp.cpp
 #endif
+
+#if CONTENTSERVER
+contentserver/handler.cpp
+contentserver/main.cpp
+contentserver/tcp.cpp
+shared/network/core/host.cpp
+shared/network/core/tcp.cpp
+shared/network/core/tcp_content.cpp
+#endif

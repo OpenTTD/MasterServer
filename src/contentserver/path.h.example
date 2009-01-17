@@ -1,0 +1,8 @@
+/* $Id$ */
+
+/**
+ * Content data path.
+ * %i gets replaced by a part of the unique id; the first one
+ * is id / 100, the second one id % 100.
+ */
+#define CONTENT_DATA_PATH "/var/lib/content/%i%i.tar.gz"

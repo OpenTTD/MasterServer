@@ -3,7 +3,9 @@
 #include "stdafx.h"
 #include "debug.h"
 #include "mysql.h"
+#include "core/alloc_func.hpp"
 #include "core/bitmath_func.hpp"
+#include "string_func.h"
 #include "date_func.h"
 #include <mysql/mysql.h>
 #include <string.h>
@@ -45,8 +47,13 @@ MySQL::MySQL(const char *host, const char *user, const char *passwd, const char 
 	_mysql = mysql_init(NULL);
 	if (_mysql == NULL) error("Unable to create mysql object");
 
-	if ((!mysql_real_connect(_mysql, host, user, passwd, db, port, NULL, 0))) {
+	if (!mysql_real_connect(_mysql, host, user, passwd, db, port, NULL, 0)) {
 		error("Cannot connect to MySQL: %s", mysql_error(_mysql));
+	}
+
+	bool truep = true;
+	if (mysql_options(_mysql, MYSQL_OPT_RECONNECT, (const char *)&truep) != 0) {
+		error("Cannot enable MySQL reconnection: %s", mysql_error(_mysql));
 	}
 
 	DEBUG(sql, 1, "Connected to MySQL");
@@ -72,15 +79,15 @@ void MySQL::Quote(char *dest, size_t dest_len, const char *to_quote)
 	mysql_real_escape_string(_mysql, dest, to_quote, strlen(to_quote));
 }
 
-void MySQL::MD5sumToString(const GRFIdentifier *grf, char *dest)
+void MySQL::MD5sumToString(const uint8 md5sum[16], char *dest)
 {
 	static const char *digits = "0123456789ABCDEF";
 
-	for (uint j = 0; j < sizeof(grf->md5sum); j++) {
-		dest[j * 2    ] = digits[grf->md5sum[j] / 16];
-		dest[j * 2 + 1] = digits[grf->md5sum[j] % 16];
+	for (uint j = 0; j < 32; j++) {
+		dest[j * 2    ] = digits[md5sum[j] / 16];
+		dest[j * 2 + 1] = digits[md5sum[j] % 16];
 	}
-	dest[sizeof(grf->md5sum) * 2] = '\0';
+	dest[32] = '\0';
 }
 
 void MySQL::MakeServerOnline(const char *ip, uint16 port)
@@ -190,7 +197,7 @@ void MySQL::UpdateNetworkGameInfo(const char *ip, uint16 port, const NetworkGame
 	/* Now add the new GRFs */
 	for (GRFConfig *c = info->grfconfig; c != NULL; c = c->next) {
 		char md5sum[sizeof(c->md5sum) * 2 + 1];
-		this->MD5sumToString(c, md5sum);
+		this->MD5sumToString(c->md5sum, md5sum);
 
 		snprintf(sql, sizeof(sql), "INSERT INTO servers_newgrfs SET server_id='%s', "
 				"grfid='%u', md5sum='%s'", server_id, BSWAP32(c->grfid), md5sum);
@@ -261,7 +268,7 @@ void MySQL::AddGRF(const GRFIdentifier *grf)
 	char sql[MAX_SQL_LEN];
 	char md5sum[sizeof(grf->md5sum) * 2 + 1];
 
-	this->MD5sumToString(grf, md5sum);
+	this->MD5sumToString(grf->md5sum, md5sum);
 
 	snprintf(sql, sizeof(sql), "INSERT IGNORE INTO newgrfs SET name='Not yet known',"
 			"grfid='%u', md5sum='%s', unknown='1'", BSWAP32(grf->grfid), md5sum);
@@ -276,12 +283,165 @@ void MySQL::SetGRFName(const GRFIdentifier *grf, const char *name)
 	char md5sum[sizeof(grf->md5sum) * 2 + 1];
 	char safe_name[NETWORK_GRF_NAME_LENGTH * 2];
 
-	this->MD5sumToString(grf, md5sum);
+	this->MD5sumToString(grf->md5sum, md5sum);
 	this->Quote(safe_name, sizeof(safe_name), name);
 
 	snprintf(sql, sizeof(sql), "UPDATE newgrfs SET name='%s', unknown='0' WHERE grfid='%u' AND md5sum='%s' AND unknown='1'",
 			safe_name, BSWAP32(grf->grfid), md5sum);
 	MYSQL_RES *res = MySQLQuery(sql);
 
+	if (res != NULL) mysql_free_result(res);
+}
+
+bool MySQL::FillContentDetails(ContentInfo info[], int length, ContentKey key, bool extra_data)
+{
+	for (int i = 0; i < length; i++) {
+		char sql[MAX_SQL_LEN];
+		char *p = sql;
+
+		p += snprintf(sql, sizeof(sql), "SELECT id, name, filename, filesize, " \
+				"type_id, version, url, description, uniqueid, uniquemd5 " \
+				"FROM bananas_file WHERE active = 1 AND ");
+
+		switch (key) {
+			case CK_ID:
+				snprintf(p, lastof(sql) - p, "id = %i", info[i].id);
+				break;
+
+			case CK_UNIQUEID:
+				snprintf(p, lastof(sql) - p, "uniqueid = %u AND type_id = %i",
+								info[i].unique_id, info[i].type);
+				break;
+
+			case CK_UNIQUEID_MD5:
+				char md5sum[sizeof(info[i].md5sum) * 2 + 1];
+				this->MD5sumToString(info[i].md5sum, md5sum);
+				snprintf(p, lastof(sql) - p, "uniqueid = %u AND uniquemd5 = '%s' AND type_id = %i",
+								info[i].unique_id, md5sum, info[i].type);
+				break;
+
+			default:
+				return false;
+		}
+		MYSQL_RES *res = MySQLQuery(sql);
+		if (res == NULL) return false;
+
+		if (mysql_num_rows(res) == 0) {
+			mysql_free_result(res);
+			continue;
+		}
+
+		MYSQL_ROW row = mysql_fetch_row(res);
+		info[i].id = (ContentID)atoi(row[0]);
+		ttd_strlcpy(info[i].filename, row[2], sizeof(info[i].filename));
+		info[i].filesize = atoi(row[3]);
+		info[i].type = (ContentType)atoi(row[4]);
+
+		if (extra_data) {
+			ttd_strlcpy(info[i].name, row[1], sizeof(info[i].name));
+			ttd_strlcpy(info[i].version, row[5], sizeof(info[i].version));
+			ttd_strlcpy(info[i].url, row[6], sizeof(info[i].url));
+			ttd_strlcpy(info[i].description, row[7], sizeof(info[i].description));
+		}
+
+		if (extra_data && key != CK_UNIQUEID_MD5) {
+			info[i].unique_id = strtoll(row[8], NULL, 10);
+			for (uint j = 0; j < 32; j++) {
+				int k;
+				char c = row[9][j];
+				if (c <= '9') {
+					k = c - '0';
+				} else if (c <= 'F') {
+					k = c - 'A' + 10;
+				} else {
+					k = c - 'a' + 10;
+				}
+
+				if (j % 2 == 0) {
+					info[i].md5sum[j / 2] = k << 4;
+				} else {
+					info[i].md5sum[j / 2] |= k;
+				}
+			}
+		}
+		mysql_free_result(res);
+
+		if (!extra_data) continue;
+
+		/* Now get the tags */
+		snprintf(sql, sizeof(sql), "SELECT tag.name FROM bananas_tag AS tag JOIN " \
+				"bananas_file_tags AS file ON tag.id = file.tag_id WHERE " \
+				"file.file_id = %u", info[i].id);
+		res = MySQLQuery(sql);
+		if (res == NULL) return false;
+
+		uint rows = min(mysql_num_rows(res), 255);
+		if (rows != 0) {
+			info[i].tag_count = rows;
+			info[i].tags = MallocT<char[32]>(rows);
+			for (uint j = 0; j < rows; j++) {
+				MYSQL_ROW row = mysql_fetch_row(res);
+				ttd_strlcpy(info[i].tags[j], row[0], sizeof(info[i].tags[j]));
+			}
+		}
+		mysql_free_result(res);
+
+		/* And now get the dependencies */
+		snprintf(sql, sizeof(sql), "SELECT to_file_id FROM bananas_file_deps " \
+				"WHERE from_file_id = %u", info[i].id);
+		res = MySQLQuery(sql);
+		if (res == NULL) return false;
+
+		rows = min(mysql_num_rows(res), 255);
+		if (rows != 0) {
+			info[i].dependency_count = rows;
+			info[i].dependencies = MallocT<ContentID>(rows);
+			for (uint j = 0; j < rows; j++) {
+				MYSQL_ROW row = mysql_fetch_row(res);
+				info[i].dependencies[j] = (ContentID)atoi(row[0]);
+			}
+		}
+		mysql_free_result(res);
+	}
+
+	return true;
+}
+
+uint MySQL::FindContentDetails(ContentInfo info[], int length, ContentType type, uint32 version)
+{
+	char sql[MAX_SQL_LEN];
+
+	snprintf(sql, sizeof(sql), "SELECT id FROM bananas_file " \
+			"WHERE active = 1 AND published = 1 AND type_id = %i AND " \
+			"minimalVersion <= %i AND " \
+			"(maximalVersion = -1 OR maximalVersion >= %i) LIMIT 0,%d",
+			(int)type, version, version, length);
+
+	MYSQL_RES *res = MySQLQuery(sql);
+	if (res == NULL) return 0;
+
+	/* The amount of advertised servers in the database */
+	uint count = mysql_num_rows(res);
+
+	for (uint i = 0; i < count; i++) {
+		MYSQL_ROW row = mysql_fetch_row(res);
+		info[i].id = (ContentID)atoi(row[0]);
+	}
+
+	mysql_free_result(res);
+
+	return this->FillContentDetails(info, count, CK_ID, true) ? count : 0;
+}
+
+void MySQL::IncrementDownloadCount(ContentID id)
+{
+	char sql[MAX_SQL_LEN];
+
+	snprintf(sql, sizeof(sql), "UPDATE bananas_file SET downloads = downloads + 1 WHERE id = %u", id);
+	MYSQL_RES *res = MySQLQuery(sql);
+	if (res != NULL) mysql_free_result(res);
+
+	snprintf(sql, sizeof(sql), "INSERT INTO bananas_download VALUES (0, %u, NOW(), 2)", id);
+	res = MySQLQuery(sql);
 	if (res != NULL) mysql_free_result(res);
 }
