@@ -68,7 +68,7 @@ char* CDECL str_fmt(const char* str, ...)
 }
 
 
-void str_validate(char *str)
+void str_validate(char *str, bool allow_newline)
 {
 	char *dst = str;
 	WChar c;

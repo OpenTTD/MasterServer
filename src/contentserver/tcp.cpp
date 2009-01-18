@@ -66,6 +66,8 @@ DEF_CONTENT_RECEIVE_COMMAND(Server, PACKET_CONTENT_CLIENT_INFO_EXTID)
 		this->SendInfo(count, ci);
 	}
 
+	delete[] ci;
+
 	return true;
 }
 
@@ -93,6 +95,8 @@ DEF_CONTENT_RECEIVE_COMMAND(Server, PACKET_CONTENT_CLIENT_INFO_EXTID_MD5)
 		this->cs->GetSQLBackend()->FillContentDetails(ci, count, SQL::CK_UNIQUEID_MD5);
 		this->SendInfo(count, ci);
 	}
+
+	delete[] ci;
 
 	return true;
 }
