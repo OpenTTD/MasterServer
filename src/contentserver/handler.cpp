@@ -72,8 +72,11 @@ void ContentServer::RealRun()
 		FD_ZERO(&write_fd);
 
 		for (ServerNetworkContentSocketHandler *cs = this->first; cs != NULL; cs = cs->next) {
-			FD_SET(cs->sock, &read_fd);
-			if (!cs->IsPacketQueueEmpty() || cs->HasQueue()) FD_SET(cs->sock, &write_fd);
+			if (!cs->IsPacketQueueEmpty() || cs->HasQueue()) {
+				FD_SET(cs->sock, &write_fd);
+			} else {
+				FD_SET(cs->sock, &read_fd);
+			}
 		}
 
 		/* take care of listener port */
@@ -96,12 +99,9 @@ void ContentServer::RealRun()
 		for (ServerNetworkContentSocketHandler *cs = this->first; cs != NULL;) {
 			if (FD_ISSET(cs->sock, &write_fd)) {
 				cs->writable = true;
-				cs->Send_Packets();
-			}
-
-			if (cs->HasQueue()) {
-					/* Fill the queue only when the current queue is empty */
-					if (cs->IsPacketQueueEmpty()) cs->SendQueue();
+				while (cs->Send_Packets() && cs->IsPacketQueueEmpty() && cs->HasQueue()) {
+					cs->SendQueue();
+				}
 			} else if (FD_ISSET(cs->sock, &read_fd)) {
 				/* Only receive packets when our outgoing packet queue is empty. This
 				 * way we prevent internal memory overflows when people start
@@ -114,6 +114,8 @@ void ContentServer::RealRun()
 			cs = cs->next;
 			if (cur_cs->HasClientQuit()) delete cur_cs;
 		}
+
+		CSleep(1);
 	}
 }
 
@@ -123,8 +125,6 @@ ServerNetworkContentSocketHandler::ServerNetworkContentSocketHandler(ContentServ
 	cs->first = this;
 
 	this->contentQueue = NULL;
-	this->curFile = NULL;
-	this->packetsPerTick = 8;
 }
 
 ServerNetworkContentSocketHandler::~ServerNetworkContentSocketHandler()
@@ -137,6 +137,5 @@ ServerNetworkContentSocketHandler::~ServerNetworkContentSocketHandler()
 
 	*prev = this->next;
 
-	if (this->curFile != NULL) fclose(this->curFile);
 	delete [] this->contentQueue;
 }

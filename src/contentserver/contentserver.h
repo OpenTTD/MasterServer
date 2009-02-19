@@ -50,8 +50,6 @@ protected:
 	ContentInfo *contentQueue; ///< Queue of content (files) to send to the client
 	uint contentQueueIter;     ///< Iterator over the contentQueue
 	uint contentQueueLength;   ///< Number of items in the contentQueue
-	FILE *curFile;             ///< The file we are currently transmitting
-	uint packetsPerTick;       ///< The amount of packets we send per tick (to not OOM ourself)
 
 	DECLARE_CONTENT_RECEIVE_COMMAND(PACKET_CONTENT_CLIENT_INFO_LIST);
 	DECLARE_CONTENT_RECEIVE_COMMAND(PACKET_CONTENT_CLIENT_INFO_ID);
