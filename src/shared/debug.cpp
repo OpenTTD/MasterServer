@@ -137,7 +137,7 @@ void SetDebugString(const char *s)
 		if (p != NULL) {
 			*p = v;
 		} else {
-			printf("Unknown debug level '%.*s'", s - t, t);
+			printf("Unknown debug level '%.*s'", (int)(s - t), t);
 			return;
 		}
 	}

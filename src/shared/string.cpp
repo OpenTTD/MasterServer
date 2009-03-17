@@ -9,83 +9,133 @@
 #include <stdarg.h>
 #include <ctype.h> // required for tolower()
 
+enum StringControlCode {
+	SCC_SPRITE_START  = 0xE200,
+	SCC_SPRITE_END    = SCC_SPRITE_START + 0xFF,
+};
+
+/**
+ * Safer implementation of vsnprintf; same as vsnprintf except:
+ * - last instead of size, i.e. replace sizeof with lastof.
+ * - return gives the amount of characters added, not what it would add.
+ * @param str    buffer to write to up to last
+ * @param last   last character we may write to
+ * @param format the formatting (see snprintf)
+ * @param ap     the list of arguments for the format
+ * @return the number of added characters
+ */
+static int CDECL vseprintf(char *str, const char *last, const char *format, va_list ap)
+{
+	if (str >= last) return 0;
+	size_t size = last - str;
+	return min((int)size, vsnprintf(str, size, format, ap));
+}
+
 void ttd_strlcat(char *dst, const char *src, size_t size)
 {
 	assert(size > 0);
-	for (; size > 0 && *dst != '\0'; --size, ++dst) {}
-	assert(size > 0);
-	while (--size > 0 && *src != '\0') *dst++ = *src++;
-	*dst = '\0';
+	while (size > 0 && *dst != '\0') {
+		size--;
+		dst++;
+	}
+
+	ttd_strlcpy(dst, src, size);
 }
 
 
 void ttd_strlcpy(char *dst, const char *src, size_t size)
 {
 	assert(size > 0);
-	while (--size > 0 && *src != '\0') *dst++ = *src++;
+	while (--size > 0 && *src != '\0') {
+		*dst++ = *src++;
+	}
 	*dst = '\0';
 }
 
 
-char* strecat(char* dst, const char* src, const char* last)
+char *strecat(char *dst, const char *src, const char *last)
 {
 	assert(dst <= last);
-	for (; *dst != '\0'; ++dst)
+	while (*dst != '\0') {
 		if (dst == last) return dst;
-	for (; *src != '\0' && dst != last; ++dst, ++src) *dst = *src;
-	*dst = '\0';
+		dst++;
+	}
+
 	return strecpy(dst, src, last);
 }
 
 
-char* strecpy(char* dst, const char* src, const char* last)
+char *strecpy(char *dst, const char *src, const char *last)
 {
 	assert(dst <= last);
-	for (; *src != '\0' && dst != last; ++dst, ++src) *dst = *src;
-	*dst = '\0';
-#if 1
-	if (dst == last && *src != '\0') {
-		DEBUG(misc, 2, "String too long for destination buffer");
+	while (dst != last && *src != '\0') {
+		*dst++ = *src++;
 	}
-#endif
+	*dst = '\0';
+
+	if (dst == last && *src != '\0') {
+#ifdef STRGEN
+		error("String too long for destination buffer");
+#else /* STRGEN */
+		DEBUG(misc, 0, "String too long for destination buffer");
+#endif /* STRGEN */
+	}
 	return dst;
 }
 
 
-char* CDECL str_fmt(const char* str, ...)
+char *CDECL str_fmt(const char *str, ...)
 {
 	char buf[4096];
 	va_list va;
-	int len;
-	char* p;
 
 	va_start(va, str);
-	len = vsnprintf(buf, lengthof(buf), str, va);
+	int len = vseprintf(buf, lastof(buf), str, va);
 	va_end(va);
-	p = MallocT<char>(len + 1);
-	if (p != NULL) memcpy(p, buf, len + 1);
+	char *p = MallocT<char>(len + 1);
+	memcpy(p, buf, len + 1);
 	return p;
 }
 
 
-void str_validate(char *str, bool allow_newline)
+void str_validate(char *str, const char *last, bool allow_newlines, bool ignore)
 {
-	char *dst = str;
-	WChar c;
-	size_t len;
+	/* Assume the ABSOLUTE WORST to be in str as it comes from the outside. */
 
-	for (len = Utf8Decode(&c, str); c != '\0'; len = Utf8Decode(&c, str)) {
-		if (IsPrintable(c)) {
+	char *dst = str;
+	while (*str != '\0') {
+		size_t len = Utf8EncodedCharLen(*str);
+		/* If the character is unknown, i.e. encoded length is 0
+		 * we assume worst case for the length check.
+		 * The length check is needed to prevent Utf8Decode to read
+		 * over the terminating '\0' if that happens to be placed
+		 * within the encoding of an UTF8 character. */
+		if ((len == 0 && str + 4 > last) || str + len > last) break;
+
+		WChar c;
+		len = Utf8Decode(&c, str);
+		/* It's possible to encode the string termination character
+		 * into a multiple bytes. This prevents those termination
+		 * characters to be skipped */
+		if (c == '\0') break;
+
+		if (IsPrintable(c) && (c < SCC_SPRITE_START || c > SCC_SPRITE_END)) {
 			/* Copy the character back. Even if dst is current the same as str
 			 * (i.e. no characters have been changed) this is quicker than
 			 * moving the pointers ahead by len */
 			do {
 				*dst++ = *str++;
 			} while (--len != 0);
+		} else if (allow_newlines && c == '\n') {
+			*dst++ = *str++;
 		} else {
+			if (allow_newlines && c == '\r' && str[1] == '\n') {
+				str += len;
+				continue;
+			}
 			/* Replace the undesirable character with a question mark */
 			str += len;
-			*dst++ = '?';
+			if (!ignore) *dst++ = '?';
 		}
 	}
 
