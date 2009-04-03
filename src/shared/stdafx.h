@@ -303,4 +303,6 @@ assert_compile(sizeof(uint8)  == 1);
  */
 #define MAX_UVALUE(type) ((type)~(type)0)
 
+#define FS2OTTD(i) (i)
+
 #endif /* STDAFX_H */

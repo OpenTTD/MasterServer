@@ -3,7 +3,6 @@
 #include "shared/stdafx.h"
 #include "shared/debug.h"
 #include "shared/network/core/core.h"
-#include "shared/network/core/host.h"
 #include "contentserver.h"
 
 /**
@@ -53,7 +52,7 @@ void ContentServer::AcceptClients()
 
 		if (!SetNonBlocking(s) || !SetNoDelay(s)) return;
 
-		new ServerNetworkContentSocketHandler(this, s, NetworkAddress(sin));
+		new ServerNetworkContentSocketHandler(this, s, NetworkAddress(sin, sin_len));
 	}
 }
 

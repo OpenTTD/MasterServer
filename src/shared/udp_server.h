@@ -66,10 +66,7 @@ struct SockAddrInComparator
 	 */
 	bool operator()(const NetworkAddress *s1, const NetworkAddress *s2) const
 	{
-//		if (s1->sin_addr.s_addr == s2->sin_addr.s_addr) return s1->sin_port < s2->sin_port;
-//		return s1->sin_addr.s_addr < s2->sin_addr.s_addr;
-#warning TODO!
-			return 0;
+			return s1 < s2;
 	}
 };
 
