@@ -4,9 +4,6 @@
 #define HELPERS_HPP
 
 /** @file helpers.hpp */
-#include "macros.h"
-
-#ifdef __cplusplus
 
 /** When allocating using malloc/calloc in C++ it is usually needed to cast the return value
 *  from void* to the proper pointer type. Another alternative would be MallocT<> as follows */
@@ -39,7 +36,5 @@ template <typename T> FORCEINLINE void SwapT(T *a, T *b)
 	*a = *b;
 	*b = t;
 }
-
-#endif  // __cplusplus
 
 #endif /* HELPERS_HPP */

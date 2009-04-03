@@ -5,6 +5,7 @@
 #include "mysql.h"
 #include "core/alloc_func.hpp"
 #include "core/bitmath_func.hpp"
+#include "core/math_func.hpp"
 #include "string_func.h"
 #include "date_func.h"
 #include <mysql/mysql.h>

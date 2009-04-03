@@ -2,7 +2,7 @@
 
 #include "stdafx.h"
 #include "string_func.h"
-#include "macros.h"
+#include "core/math_func.hpp"
 #include "debug.h"
 #include "helpers.hpp"
 
@@ -209,7 +209,7 @@ size_t Utf8Decode(WChar *c, const char *s)
 {
 	assert(c != NULL);
 
-	if (!HASBIT(s[0], 7)) {
+	if (!HasBit(s[0], 7)) {
 		/* Single byte character: 0xxxxxxx */
 		*c = s[0];
 		return 1;

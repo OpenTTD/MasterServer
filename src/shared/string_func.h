@@ -3,7 +3,7 @@
 #ifndef STRING_H
 #define STRING_H
 
-#include "macros.h"
+#include "core/bitmath_func.hpp"
 
 /**
  * Appends characters from one string to another.
