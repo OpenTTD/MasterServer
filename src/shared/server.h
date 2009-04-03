@@ -5,11 +5,15 @@
 
 #include "shared/sql.h"
 #include "shared/network/core/os_abstraction.h"
+#include "shared/network/core/address.h"
 #include "shared/network/core/core.h"
+#include "core/smallvec_type.hpp"
 
 /**
  * @file server.h Shared server (master server/updater) related functionality
  */
+
+typedef SmallVector<NetworkAddress, 2> NetworkAddressList;
 
 class Server {
 protected:
@@ -52,12 +56,12 @@ public:
  * Runs the application
  * @param argc             number of arguments coming from the console
  * @param argv             arguments coming from the console
- * @param hostname         variable to fill with the console supplied hostname
- * @param hostname_length  length of the hostname array
+ * @param hostnames        variable to fill with the console supplied hostnames
+ * @param port             the port to connect to
  * @param fork             variable to tell whether the arguments imply forking
  * @param application_name the name of the application
  */
-void ParseCommandArguments(int argc, char *argv[], char *hostname, size_t hostname_length, bool *fork, const char *application_name);
+void ParseCommandArguments(int argc, char *argv[], NetworkAddressList &hostnames, uint16 port, bool *fork, const char *application_name);
 
 /**
  * Multi os compatible sleep function

@@ -99,10 +99,10 @@ public:
 	/**
 	 * Creates a new server with the given query socket handler
 	 * @param sql          the SQL backend to read/write persistent data to
-	 * @param host         the host to bind the socket to
+	 * @param addresses    the host to bind the socket to
 	 * @param query_socket socket handler for the socket we will listen on
 	 */
-	UDPServer(SQL *sql, const char *host, NetworkUDPSocketHandler *query_socket);
+	UDPServer(SQL *sql, NetworkAddressList &addresses, NetworkUDPSocketHandler *query_socket);
 
 	/** The obvious destructor */
 	virtual ~UDPServer();

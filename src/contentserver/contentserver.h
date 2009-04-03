@@ -22,10 +22,13 @@ protected:
 	friend class ServerNetworkContentSocketHandler;
 	virtual void RealRun();
 
-	/** Accept clients as long the the listen socket has some waiting */
-	void AcceptClients();
+	/**
+	 * Accept clients as long the the listen socket has some waiting
+	 * @param listen_socket the socket that is accepting
+	 */
+	void AcceptClients(SOCKET listen_socket);
 
-	SOCKET listen_socket;                     ///< Socket we are listening on
+	SmallVector<SOCKET, 2> listen_sockets;    ///< Sockets we are listening on
 	ServerNetworkContentSocketHandler *first; ///< The first socket, part of linked list
 public:
 	/**
@@ -33,7 +36,7 @@ public:
 	 * @param sql the SQL server to use for persistent data storage
 	 * @param address the host to bind on
 	 */
-	ContentServer(SQL *sql, NetworkAddress address);
+	ContentServer(SQL *sql, NetworkAddressList &addresses);
 
 	/** The obvious destructor */
 	~ContentServer();

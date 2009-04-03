@@ -102,7 +102,7 @@ void UpdaterQueriedServer::AddMissingGRF(const GRFIdentifier *grf)
 }
 
 
-Updater::Updater(SQL *sql, const char *host) : UDPServer(sql, host, new UpdaterNetworkUDPSocketHandler(this))
+Updater::Updater(SQL *sql, NetworkAddressList &addresses) : UDPServer(sql, addresses, new UpdaterNetworkUDPSocketHandler(this))
 {
 	/* We reset the requery intervals, so all servers that are marked
 	 * on-line get an initial sweep on startup of the application. */

@@ -7,13 +7,13 @@
 
 int main(int argc, char *argv[])
 {
-	char hostname[NETWORK_HOSTNAME_LENGTH];
 	bool fork = false;
+	NetworkAddressList addresses;
 
-	ParseCommandArguments(argc, argv, hostname, sizeof(hostname), &fork, "updater");
+	ParseCommandArguments(argc, argv, addresses, 0, &fork, "updater");
 
 	SQL *sql = new MySQL(MYSQL_MSU_HOST, MYSQL_MSU_USER, MYSQL_MSU_PASS, MYSQL_MSU_DB, MYSQL_MSU_PORT);
-	Server *server = new Updater(sql, hostname);
+	Server *server = new Updater(sql, addresses);
 	server->Run("updater.log", "updater", fork);
 	delete server;
 	delete sql;

@@ -145,11 +145,8 @@ void Server::Run(const char *logfile, const char *application_name, bool fork)
 	if (_log_file_fd != NULL) fclose(_log_file_fd);
 }
 
-void ParseCommandArguments(int argc, char *argv[], char *hostname, size_t hostname_length, bool *fork, const char *application_name)
+void ParseCommandArguments(int argc, char *argv[], NetworkAddressList &hostnames, uint16 port, bool *fork, const char *application_name)
 {
-	/* Default bind to all addresses */
-	strcpy(hostname, "0.0.0.0");
-
 	/* Check params */
 	for (int i = 1; i < argc; i++) {
 		if (argv[i][0] == '-') {
@@ -178,7 +175,11 @@ void ParseCommandArguments(int argc, char *argv[], char *hostname, size_t hostna
 					exit(0);
 			}
 		} else {
-			strncpy(hostname, argv[i], hostname_length);
+			*hostnames.Append() = NetworkAddress(argv[i], port);
 		}
+	}
+
+	if (hostnames.Length() == 0) {
+		*hostnames.Append() = NetworkAddress("::", port);
 	}
 }

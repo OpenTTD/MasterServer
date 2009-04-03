@@ -57,10 +57,9 @@ public:
 	 * Create a new masterserver using a given SQL server and bind to the
 	 * given hostname and port.
 	 * @param sql         the SQL server used as persistent storage
-	 * @param host        the host to bind on
-	 * @param master_port the masterserver port to listen on
+	 * @param addresses   the addresses to bind on
 	 */
-	MasterServer(SQL *sql, const char *host, uint16 master_port);
+	MasterServer(SQL *sql, NetworkAddressList &addresses);
 
 	/** The obvious destructor */
 	~MasterServer();

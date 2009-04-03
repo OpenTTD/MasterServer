@@ -9,45 +9,31 @@
  * @file contentserver/handler.cpp Handler of queries to the content server
  */
 
-ContentServer::ContentServer(SQL *sql, NetworkAddress address) : Server(sql), first(NULL)
+ContentServer::ContentServer(SQL *sql, NetworkAddressList &addresses) : Server(sql), first(NULL)
 {
-	this->listen_socket = socket(AF_INET, SOCK_STREAM, 0);
-	if (this->listen_socket == INVALID_SOCKET) {
-		error("Could not bind to %s; cannot open socket\n", address.GetAddressAsString());
-	}
-
-	/* reuse the socket */
-	int reuse = 1;
-	/* The (const char*) cast is needed for windows!! */
-	if (setsockopt(this->listen_socket, SOL_SOCKET, SO_REUSEADDR, (const char*)&reuse, sizeof(reuse)) == -1) {
-		error("Could not bind to %s; setsockopt() failed\n", address.GetAddressAsString());
-	}
-
-	if (!SetNonBlocking(this->listen_socket)) {
-		error("Could not bind to %s; could not make socket non-blocking failed\n", address.GetAddressAsString());
-	}
-
-	if (bind(this->listen_socket, (struct sockaddr*)address.GetAddress(), sizeof(*address.GetAddress())) != 0) {
-		error("Could not bind to %s; bind() failed\n", address.GetAddressAsString());
-	}
-
-	if (listen(this->listen_socket, 1) != 0) {
-		error("Could not bind to %s; listen() failed\n", address.GetAddressAsString());
+	for (NetworkAddress *address = addresses.Begin(); address != addresses.End(); address++) {
+		SOCKET s = address->Listen(AF_UNSPEC, SOCK_STREAM);
+		if (s == INVALID_SOCKET) {
+			error("Could not bind to %s\n", address->GetAddressAsString());
+		}
+		*this->listen_sockets.Append() = s;
 	}
 }
 
 ContentServer::~ContentServer()
 {
-	closesocket(this->listen_socket);
+	for (SOCKET *s = listen_sockets.Begin(); s != listen_sockets.End(); s++) {
+		closesocket(*s);
+	}
 	while (this->first != NULL) delete this->first;
 }
 
-void ContentServer::AcceptClients()
+void ContentServer::AcceptClients(SOCKET listen_socket)
 {
 	for (;;) {
 		struct sockaddr_storage sin;
 		socklen_t sin_len = sizeof(sin);
-		SOCKET s = accept(this->listen_socket, (struct sockaddr*)&sin, &sin_len);
+		SOCKET s = accept(listen_socket, (struct sockaddr*)&sin, &sin_len);
 		if (s == INVALID_SOCKET) return;
 
 		if (!SetNonBlocking(s) || !SetNoDelay(s)) return;
@@ -74,7 +60,9 @@ void ContentServer::RealRun()
 		}
 
 		/* take care of listener port */
-		FD_SET(this->listen_socket, &read_fd);
+		for (SOCKET *s = listen_sockets.Begin(); s != listen_sockets.End(); s++) {
+			FD_SET(*s, &read_fd);
+		}
 
 		/* Wait for a second */
 		tv.tv_sec = 1;
@@ -85,8 +73,11 @@ void ContentServer::RealRun()
 		WaitSelect(FD_SETSIZE, &read_fd, &write_fd, NULL, &tv, NULL);
 #endif
 		/* accept clients.. */
-		if (FD_ISSET(this->listen_socket, &read_fd)) {
-			this->AcceptClients();
+		/* take care of listener port */
+		for (SOCKET *s = listen_sockets.Begin(); s != listen_sockets.End(); s++) {
+			if (FD_ISSET(*s, &read_fd)) {
+				this->AcceptClients(*s);
+			}
 		}
 
 		/* read stuff from clients/write to them */

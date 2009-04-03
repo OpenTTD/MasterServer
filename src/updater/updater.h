@@ -89,10 +89,10 @@ protected:
 public:
 	/**
 	 * Create a new Updater given an SQL connection and host
-	 * @param sql  the SQL server to use for persistent data storage
-	 * @param host the host to bind on
+	 * @param sql       the SQL server to use for persistent data storage
+	 * @param addresses the host to bind on
 	 */
-	Updater(SQL *sql, const char *host);
+	Updater(SQL *sql, NetworkAddressList &addresses);
 
 	/** The obvious destructor */
 	~Updater();
