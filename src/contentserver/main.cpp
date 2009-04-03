@@ -13,7 +13,7 @@ int main(int argc, char *argv[])
 	ParseCommandArguments(argc, argv, hostname, sizeof(hostname), &fork, "contentserver");
 
 	SQL *sql = new MySQL(MYSQL_CONTENT_HOST, MYSQL_CONTENT_USER, MYSQL_CONTENT_PASS, MYSQL_CONTENT_DB, MYSQL_CONTENT_PORT);
-	Server *server = new ContentServer(sql, hostname, NETWORK_CONTENT_SERVER_PORT);
+	Server *server = new ContentServer(sql, NetworkAddress(hostname, NETWORK_CONTENT_SERVER_PORT));
 	server->Run("contentserver.log", "contentserver", fork);
 	delete server;
 	delete sql;

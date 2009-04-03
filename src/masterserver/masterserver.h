@@ -21,16 +21,15 @@ enum {
 
 class MSQueriedServer : public QueriedServer {
 protected:
-	struct sockaddr_in query_address;  ///< Address of the incoming UDP packets
+	NetworkAddress query_address;  ///< Address of the incoming UDP packets
 
 public:
 	/**
 	 * Creates a new queried server for the gameserver with the given address
 	 * @param query_address the address of the gameserver
-	 * @param server_port   the port to send gameserver requests to
 	 * @param frame         time of the last attempt
 	 */
-	MSQueriedServer(const sockaddr_in *query_address, uint16 server_port, uint frame);
+	MSQueriedServer(NetworkAddress query_address, uint frame);
 
 	void DoAttempt(UDPServer *server);
 
@@ -38,7 +37,7 @@ public:
 	 * Gets the address this game server has used to query us.
 	 * @return the address the game server used to query us
 	 */
-	struct sockaddr_in *GetQueryAddress() { return &this->query_address; }
+	NetworkAddress *GetQueryAddress() { return &this->query_address; }
 };
 
 /**
@@ -68,7 +67,7 @@ public:
 
 	void ReceivePackets();
 
-	MSQueriedServer *GetQueriedServer(const struct sockaddr_in *client_addr) { return (MSQueriedServer*)UDPServer::GetQueriedServer(client_addr); }
+	MSQueriedServer *GetQueriedServer(const NetworkAddress *client_addr) { return (MSQueriedServer*)UDPServer::GetQueriedServer(client_addr); }
 
 	void ServerStateChange() { this->update_serverlist_packet = true; }
 	Packet *GetServerListPacket(); ///< Gets an (relatively) up-to-date packet with all game servers

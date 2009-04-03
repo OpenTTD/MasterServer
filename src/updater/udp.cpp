@@ -15,12 +15,12 @@ DEF_UDP_RECEIVE_COMMAND(Updater, PACKET_UDP_SERVER_RESPONSE)
 
 	/* We were NOT waiting for this server.. drop it */
 	if (qs == NULL) {
-		DEBUG(net, 0, "received an unexpected 'server response' from %s:%d",
-				inet_ntoa(client_addr->sin_addr), ntohs(client_addr->sin_port));
+		DEBUG(net, 0, "received an unexpected 'server response' from %s",
+				client_addr->GetAddressAsString());
 		return;
 	}
-	DEBUG(net, 3, "received a 'server response' from %s:%d",
-			inet_ntoa(client_addr->sin_addr), ntohs(client_addr->sin_port));
+	DEBUG(net, 3, "received a 'server response' from %s",
+			client_addr->GetAddressAsString());
 
 	/* Make certain that everything is zero-ed, as some values have to
 	 * be zero for 'older' versions of the game info packet. */
@@ -61,14 +61,13 @@ DEF_UDP_RECEIVE_COMMAND(Updater, PACKET_UDP_SERVER_NEWGRFS)
 
 	/* We were NOT waiting for this server.. drop it */
 	if (qs == NULL) {
-		DEBUG(net, 0, "received an unexpected 'newgrf response' from %s:%d",
-				inet_ntoa(client_addr->sin_addr), ntohs(client_addr->sin_port));
+		DEBUG(net, 0, "received an unexpected 'newgrf response' from %s",
+				client_addr->GetAddressAsString());
 		return;
 	}
 
-	DEBUG(net, 3, "received a 'newgrf response' from %s:%d",
-			inet_ntoa(client_addr->sin_addr), ntohs(client_addr->sin_port));
-
+	DEBUG(net, 3, "received a 'newgrf response' from %s",
+			client_addr->GetAddressAsString());
 	uint8 num_grfs = p->Recv_uint8();
 	if (num_grfs > NETWORK_MAX_GRF_COUNT) return;
 

@@ -10,35 +10,30 @@
  * @file contentserver/handler.cpp Handler of queries to the content server
  */
 
-ContentServer::ContentServer(SQL *sql, const char *host, uint16 port) : Server(sql), first(NULL)
+ContentServer::ContentServer(SQL *sql, NetworkAddress address) : Server(sql), first(NULL)
 {
 	this->listen_socket = socket(AF_INET, SOCK_STREAM, 0);
 	if (this->listen_socket == INVALID_SOCKET) {
-		error("Could not bind to %s:%d; cannot open socket\n", host, port);
+		error("Could not bind to %s; cannot open socket\n", address.GetAddressAsString());
 	}
 
 	/* reuse the socket */
 	int reuse = 1;
 	/* The (const char*) cast is needed for windows!! */
 	if (setsockopt(this->listen_socket, SOL_SOCKET, SO_REUSEADDR, (const char*)&reuse, sizeof(reuse)) == -1) {
-		error("Could not bind to %s:%d; setsockopt() failed\n", host, port);
+		error("Could not bind to %s; setsockopt() failed\n", address.GetAddressAsString());
 	}
 
 	if (!SetNonBlocking(this->listen_socket)) {
-		error("Could not bind to %s:%d; could not make socket non-blocking failed\n", host, port);
+		error("Could not bind to %s; could not make socket non-blocking failed\n", address.GetAddressAsString());
 	}
 
-	struct sockaddr_in sin;
-	sin.sin_family = AF_INET;
-	sin.sin_addr.s_addr = NetworkResolveHost(host);
-	sin.sin_port = htons(port);
-
-	if (bind(this->listen_socket, (struct sockaddr*)&sin, sizeof(sin)) != 0) {
-		error("Could not bind to %s:%d; bind() failed\n", host, port);
+	if (bind(this->listen_socket, (struct sockaddr*)address.GetAddress(), sizeof(*address.GetAddress())) != 0) {
+		error("Could not bind to %s; bind() failed\n", address.GetAddressAsString());
 	}
 
 	if (listen(this->listen_socket, 1) != 0) {
-		error("Could not bind to %s:%d; listen() failed\n", host, port);
+		error("Could not bind to %s; listen() failed\n", address.GetAddressAsString());
 	}
 }
 
@@ -51,14 +46,14 @@ ContentServer::~ContentServer()
 void ContentServer::AcceptClients()
 {
 	for (;;) {
-		struct sockaddr_in sin;
+		struct sockaddr_storage sin;
 		socklen_t sin_len = sizeof(sin);
 		SOCKET s = accept(this->listen_socket, (struct sockaddr*)&sin, &sin_len);
 		if (s == INVALID_SOCKET) return;
 
 		if (!SetNonBlocking(s) || !SetNoDelay(s)) return;
 
-		new ServerNetworkContentSocketHandler(this, s, &sin);
+		new ServerNetworkContentSocketHandler(this, s, NetworkAddress(sin));
 	}
 }
 
@@ -119,7 +114,7 @@ void ContentServer::RealRun()
 	}
 }
 
-ServerNetworkContentSocketHandler::ServerNetworkContentSocketHandler(ContentServer *cs, SOCKET s, const struct sockaddr_in *sin) : NetworkContentSocketHandler(s, sin), cs(cs)
+ServerNetworkContentSocketHandler::ServerNetworkContentSocketHandler(ContentServer *cs, SOCKET s, NetworkAddress sin) : NetworkContentSocketHandler(s, sin), cs(cs)
 {
 	this->next = cs->first;
 	cs->first = this;

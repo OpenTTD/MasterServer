@@ -3,7 +3,9 @@ shared/date.cpp
 shared/debug.cpp
 shared/mysql.cpp
 shared/core/alloc_func.cpp
+shared/network/core/address.cpp
 shared/network/core/core.cpp
+shared/network/core/host.cpp
 shared/network/core/packet.cpp
 shared/network/core/udp.cpp
 shared/server.cpp
@@ -27,7 +29,6 @@ updater/udp.cpp
 contentserver/handler.cpp
 contentserver/main.cpp
 contentserver/tcp.cpp
-shared/network/core/host.cpp
 shared/network/core/tcp.cpp
 shared/network/core/tcp_content.cpp
 #endif

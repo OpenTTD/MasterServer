@@ -83,6 +83,24 @@ char *strecpy(char *dst, const char *src, const char *last)
 	return dst;
 }
 
+/**
+ * Safer implementation of snprintf; same as snprintf except:
+ * - last instead of size, i.e. replace sizeof with lastof.
+ * - return gives the amount of characters added, not what it would add.
+ * @param str    buffer to write to up to last
+ * @param last   last character we may write to
+ * @param format the formatting (see snprintf)
+ * @return the number of added characters
+ */
+int CDECL seprintf(char *str, const char *last, const char *format, ...)
+{
+	va_list ap;
+
+	va_start(ap, format);
+	int ret = vseprintf(str, last, format, ap);
+	va_end(ap);
+	return ret;
+}
 
 char *CDECL str_fmt(const char *str, ...)
 {

@@ -10,17 +10,17 @@
 
 void SQL::MakeServerOnline(QueriedServer *server)
 {
-	this->MakeServerOnline(inet_ntoa(server->GetServerAddress()->sin_addr), ntohs(server->GetServerAddress()->sin_port));
+	this->MakeServerOnline(server->GetServerAddress()->GetHostname(), server->GetServerAddress()->GetPort());
 }
 
 void SQL::MakeServerOffline(QueriedServer *server)
 {
-	this->MakeServerOffline(inet_ntoa(server->GetServerAddress()->sin_addr), ntohs(server->GetServerAddress()->sin_port));
+	this->MakeServerOffline(server->GetServerAddress()->GetHostname(), server->GetServerAddress()->GetPort());
 }
 
 void SQL::UpdateNetworkGameInfo(QueriedServer *server, NetworkGameInfo *info)
 {
-	this->UpdateNetworkGameInfo(inet_ntoa(server->GetServerAddress()->sin_addr), ntohs(server->GetServerAddress()->sin_port), info);
+	this->UpdateNetworkGameInfo(server->GetServerAddress()->GetHostname(), server->GetServerAddress()->GetPort(), info);
 }
 
 void SQL::AddServerAddress(ServerAddress result[], int index, const char *ip, uint16 port)

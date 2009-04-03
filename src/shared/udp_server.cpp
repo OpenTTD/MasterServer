@@ -13,7 +13,7 @@ UDPServer::UDPServer(SQL *sql, const char *host, NetworkUDPSocketHandler *query_
 	this->query_socket = query_socket;
 	this->frame        = 0;
 
-	if (!this->query_socket->Listen(inet_addr(host), 0, false)) {
+	if (!this->query_socket->Listen(NetworkAddress(host, 0), false)) {
 		error("Could not bind to %s:0\n", host);
 	}
 }
@@ -61,7 +61,7 @@ void UDPServer::RealRun()
 	}
 }
 
-QueriedServer *UDPServer::GetQueriedServer(const struct sockaddr_in *addr)
+QueriedServer *UDPServer::GetQueriedServer(const NetworkAddress *addr)
 {
 	QueriedServerMap::iterator iter = this->queried_servers.find(addr);
 	if (iter == this->queried_servers.end()) return NULL;
@@ -87,14 +87,11 @@ QueriedServer *UDPServer::RemoveQueriedServer(QueriedServer *qs)
 	return ret;
 }
 
-QueriedServer::QueriedServer(uint32 address, uint16 port, uint frame)
+QueriedServer::QueriedServer(NetworkAddress address, uint frame) :
+	server_address(address),
+	attempts(0),
+	frame(frame)
 {
-	this->server_address.sin_family      = AF_INET;
-	this->server_address.sin_addr.s_addr = address;
-	this->server_address.sin_port        = port;
-
-	this->attempts = 0;
-	this->frame    = frame;
 }
 
 void QueriedServer::SendFindGameServerPacket(NetworkUDPSocketHandler *socket)

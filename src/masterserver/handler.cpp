@@ -11,9 +11,9 @@
 
 /* Requerying of game servers */
 
-MSQueriedServer::MSQueriedServer(const sockaddr_in *query_address, uint16 server_port, uint frame) : QueriedServer(query_address->sin_addr.s_addr, server_port, frame)
+MSQueriedServer::MSQueriedServer(NetworkAddress address, uint frame) : QueriedServer(address, frame)
 {
-	this->query_address = *(sockaddr_in*)query_address;
+	this->query_address = query_address;
 }
 
 void MSQueriedServer::DoAttempt(UDPServer *server)
@@ -26,14 +26,14 @@ void MSQueriedServer::DoAttempt(UDPServer *server)
 
 	if (this->attempts > SERVER_QUERY_ATTEMPTS) {
 		/* We tried too many times already */
-		DEBUG(net, 4, "[retry] too many server query attempts for %s:%d", inet_ntoa(this->server_address.sin_addr), ntohs(this->server_address.sin_port));
+		DEBUG(net, 4, "[retry] too many server query attempts for %s", this->server_address.GetAddressAsString());
 
 		server->RemoveQueriedServer(this);
 		delete this;
 		return;
 	}
 
-	DEBUG(net, 4, "[retry] querying %s:%d", inet_ntoa(this->server_address.sin_addr), ntohs(this->server_address.sin_port));
+	DEBUG(net, 4, "[retry] querying %s", this->server_address.GetAddressAsString());
 
 	/* Resend query */
 	this->SendFindGameServerPacket(server->GetQuerySocket());
@@ -50,7 +50,7 @@ MasterServer::MasterServer(SQL *sql, const char *host, uint16 master_port) : UDP
 	this->master_socket = new MasterNetworkUDPSocketHandler(this);
 
 	/* Bind master socket*/
-	if (!this->master_socket->Listen(inet_addr(host), NETWORK_MASTER_SERVER_PORT, false)) {
+	if (!this->master_socket->Listen(NetworkAddress(host, NETWORK_MASTER_SERVER_PORT), false)) {
 		error("Could not bind to %s:%d\n", host, NETWORK_MASTER_SERVER_PORT);
 	}
 }

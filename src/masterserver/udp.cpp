@@ -14,13 +14,11 @@ DEF_UDP_RECEIVE_COMMAND(Query, PACKET_UDP_SERVER_RESPONSE)
 
 	/* We were NOT waiting for this server.. drop it */
 	if (qs == NULL) {
-		DEBUG(net, 0, "received an unexpected 'server response' from %s:%d",
-				inet_ntoa(client_addr->sin_addr), ntohs(client_addr->sin_port));
+		DEBUG(net, 0, "received an unexpected 'server response' from %s", client_addr->GetAddressAsString());
 		return;
 	}
 
-	DEBUG(net, 3, "received a 'server response' from %s:%d",
-			inet_ntoa(client_addr->sin_addr), ntohs(client_addr->sin_port));
+	DEBUG(net, 3, "received a 'server response' from %s", client_addr->GetAddressAsString());
 
 	/* Send an okay-signal to the server */
 	Packet packet(PACKET_UDP_MASTER_ACK_REGISTER);
@@ -45,15 +43,15 @@ DEF_UDP_RECEIVE_COMMAND(Master, PACKET_UDP_SERVER_REGISTER)
 	byte master_server_version = p->Recv_uint8();
 	if (master_server_version != 1) {
 		/* We do not know this master server version */
-		DEBUG(net, 0, "received a registration request with unknown master server version from %s:%d",
-				inet_ntoa(client_addr->sin_addr), ntohs(client_addr->sin_port));
+		DEBUG(net, 0, "received a registration request with unknown master server version from %s", client_addr->GetHostname());
 		return;
 	}
 
-	DEBUG(net, 3, "received a registration request from %s:%d",
-			inet_ntoa(client_addr->sin_addr), ntohs(client_addr->sin_port));
+	client_addr->SetPort(p->Recv_uint16());
 
-	MSQueriedServer *qs = new MSQueriedServer(client_addr, htons(p->Recv_uint16()), this->ms->GetFrame());
+	DEBUG(net, 3, "received a registration request from %s", client_addr->GetAddressAsString());
+
+	MSQueriedServer *qs = new MSQueriedServer(*client_addr, this->ms->GetFrame());
 
 	/* Shouldn't happen ofcourse, but still ... */
 	if (this->HasClientQuit()) {
@@ -74,16 +72,17 @@ DEF_UDP_RECEIVE_COMMAND(Master, PACKET_UDP_SERVER_UNREGISTER)
 	uint8 master_server_version = p->Recv_uint8();
 	if (master_server_version != 1) {
 		/* We do not know this version, bail out */
-		DEBUG(net, 0, "received a unregistration request from %s:%d with unknown master server version",
-				inet_ntoa(client_addr->sin_addr), ntohs(client_addr->sin_port));
+		DEBUG(net, 0, "received a unregistration request from %s with unknown master server version",
+				client_addr->GetAddressAsString());
 
 		return;
 	}
 
-	DEBUG(net, 3, "received a unregistration request from %s:%d",
-			inet_ntoa(client_addr->sin_addr), ntohs(client_addr->sin_port));
+	client_addr->SetPort(p->Recv_uint16());
 
-	QueriedServer *qs = new QueriedServer(client_addr->sin_addr.s_addr, htons(p->Recv_uint16()), this->ms->GetFrame());
+	DEBUG(net, 3, "received a unregistration request from %s", client_addr->GetAddressAsString());
+
+	QueriedServer *qs = new QueriedServer(*client_addr, this->ms->GetFrame());
 
 	/* Shouldn't happen ofcourse, but still ... */
 	if (this->HasClientQuit()) {
@@ -99,8 +98,7 @@ DEF_UDP_RECEIVE_COMMAND(Master, PACKET_UDP_SERVER_UNREGISTER)
 
 DEF_UDP_RECEIVE_COMMAND(Master, PACKET_UDP_CLIENT_GET_LIST)
 {
-	DEBUG(net, 3, "received a request for the game server list from %s:%d",
-			inet_ntoa(client_addr->sin_addr), ntohs(client_addr->sin_port));
+	DEBUG(net, 3, "received a request for the game server list from %s", client_addr->GetAddressAsString());
 
 	this->SendPacket(this->ms->GetServerListPacket(), client_addr);
 }

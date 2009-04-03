@@ -30,11 +30,10 @@ protected:
 public:
 	/**
 	 * Create a new ContentServer given an SQL connection and host
-	 * @param sql  the SQL server to use for persistent data storage
-	 * @param host the host to bind on
-	 * @param port the port to bind on
+	 * @param sql the SQL server to use for persistent data storage
+	 * @param address the host to bind on
 	 */
-	ContentServer(SQL *sql, const char *host, uint16 port);
+	ContentServer(SQL *sql, NetworkAddress address);
 
 	/** The obvious destructor */
 	~ContentServer();
@@ -70,7 +69,7 @@ public:
 	 * @param s  the socket we are connected with
 	 * @param sin IP etc. of the client
 	 */
-	ServerNetworkContentSocketHandler(ContentServer *cs, SOCKET s, const struct sockaddr_in *sin);
+	ServerNetworkContentSocketHandler(ContentServer *cs, SOCKET s, NetworkAddress sin);
 
 	/** The obvious destructor */
 	virtual ~ServerNetworkContentSocketHandler();

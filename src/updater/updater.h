@@ -37,11 +37,10 @@ public:
 	/**
 	 * Creates a new UpdaterQueriedServer for the server identifier by
 	 * the given address and port
-	 * @param ip   the ip address of the server
-	 * @param port the port of the server
+	 * @param address the address of the server
 	 * @param frame time of last try
 	 */
-	UpdaterQueriedServer(uint32 ip, uint16 port, uint frame);
+	UpdaterQueriedServer(NetworkAddress address, uint frame);
 
 	/** The obvious destructor */
 	~UpdaterQueriedServer();
@@ -118,7 +117,7 @@ public:
 	 */
 	void MakeGRFKnown(const GRFIdentifier *grf, const char *name);
 
-	UpdaterQueriedServer *GetQueriedServer(const struct sockaddr_in *client_addr) { return (UpdaterQueriedServer*)UDPServer::GetQueriedServer(client_addr); }
+	UpdaterQueriedServer *GetQueriedServer(NetworkAddress *client_addr) { return (UpdaterQueriedServer*)UDPServer::GetQueriedServer(client_addr); }
 };
 
 /** Handler for the query socket of the updater */

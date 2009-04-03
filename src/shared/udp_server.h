@@ -21,17 +21,16 @@
  */
 class QueriedServer {
 protected:
-	struct sockaddr_in server_address; ///< Address of the running game server
-	uint attempts;                     ///< Number of attempts trying to reach the server
-	uint frame;                        ///< Last frame we did an attempt
+	NetworkAddress server_address; ///< Address of the running game server
+	uint attempts;                 ///< Number of attempts trying to reach the server
+	uint frame;                    ///< Last frame we did an attempt
 public:
 	/**
 	 * Creates a new queried server with the given address and port
-	 * @param address the (sin_addr.addr) address of the server
-	 * @param port    the port of the server
+	 * @param address the address of the server
 	 * @param frame   the last frame of the attempt
 	 */
-	QueriedServer(uint32 address, uint16 port, uint frame);
+	QueriedServer(NetworkAddress address, uint frame);
 
 	/** The obvious destructor */
 	virtual ~QueriedServer() {}
@@ -56,7 +55,7 @@ public:
 	 * Gets the server address of this queried server
 	 * @return the server address of this queried server
 	 */
-	struct sockaddr_in *GetServerAddress() { return &this->server_address; }
+	NetworkAddress *GetServerAddress() { return &this->server_address; }
 };
 
 /** Comparator for the struct sockaddr_in's of the QueriedServerMap */
@@ -65,15 +64,17 @@ struct SockAddrInComparator
 	/**
 	 * Compare two sockaddr_in's on IP address and port
 	 */
-	bool operator()(const struct sockaddr_in* s1, const struct sockaddr_in* s2) const
+	bool operator()(const NetworkAddress *s1, const NetworkAddress *s2) const
 	{
-		if (s1->sin_addr.s_addr == s2->sin_addr.s_addr) return s1->sin_port < s2->sin_port;
-		return s1->sin_addr.s_addr < s2->sin_addr.s_addr;
+//		if (s1->sin_addr.s_addr == s2->sin_addr.s_addr) return s1->sin_port < s2->sin_port;
+//		return s1->sin_addr.s_addr < s2->sin_addr.s_addr;
+#warning TODO!
+			return 0;
 	}
 };
 
 /** Definition of the QueriedServerMap, which maps an socket address to a queried server */
-typedef std::map<const struct sockaddr_in*, QueriedServer*, SockAddrInComparator> QueriedServerMap;
+typedef std::map<const NetworkAddress*, QueriedServer*, SockAddrInComparator> QueriedServerMap;
 
 class UDPServer : public Server {
 private:
@@ -114,7 +115,7 @@ public:
 	 * @param client_addr the address of the querying server
 	 * @return the queried server, or NULL when we are not querying that server
 	 */
-	QueriedServer *GetQueriedServer(const struct sockaddr_in *client_addr);
+	QueriedServer *GetQueriedServer(const NetworkAddress *client_addr);
 
 	/**
 	 * Adds a server to the to-be queried servers and returns the previous

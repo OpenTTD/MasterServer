@@ -10,7 +10,7 @@
 
 ///*** Checking for expiration of retries of servers ***///
 
-UpdaterQueriedServer::UpdaterQueriedServer(uint32 ip, uint16 port, uint frame) : QueriedServer(ip, port, frame)
+UpdaterQueriedServer::UpdaterQueriedServer(NetworkAddress address, uint frame) : QueriedServer(address, frame)
 {
 	this->received_game_info = false;
 }
@@ -35,8 +35,8 @@ void UpdaterQueriedServer::DoAttempt(UDPServer *server)
 		/* We tried too many times already, make the server offline */
 
 		if (!this->received_game_info) {
-			DEBUG(net, 4, "[retry] too many query retries; marking %s:%d as offline",
-					inet_ntoa(this->server_address.sin_addr), ntohs(this->server_address.sin_port));
+			DEBUG(net, 4, "[retry] too many query retries; marking %s as offline",
+					this->server_address.GetAddressAsString());
 
 			server->GetSQLBackend()->MakeServerOffline(this);
 		}
@@ -46,14 +46,12 @@ void UpdaterQueriedServer::DoAttempt(UDPServer *server)
 	}
 
 	if (!this->received_game_info) {
-		DEBUG(net, 4, "[retry] querying %s:%d",
-				inet_ntoa(this->server_address.sin_addr), ntohs(this->server_address.sin_port));
+		DEBUG(net, 4, "[retry] querying %s", this->server_address.GetAddressAsString());
 
 		/* Resend game info query */
 		this->SendFindGameServerPacket(server->GetQuerySocket());
 	} else {
-		DEBUG(net, 4, "[retry] querying grf information on %s:%d",
-				inet_ntoa(this->server_address.sin_addr), ntohs(this->server_address.sin_port));
+		DEBUG(net, 4, "[retry] querying grf information on %s", this->server_address.GetAddressAsString());
 
 		/* Request the GRFs */
 		this->RequestGRFs(server->GetQuerySocket());
@@ -162,10 +160,9 @@ void Updater::CheckServers()
 	uint count = this->sql->GetRequeryServers(requery, UPDATER_MAX_REQUERIED_SERVERS, UPDATER_SERVER_REQUERY_INTERVAL);
 
 	for (uint i = 0; i < count; i++) {
-		QueriedServer *qs = new UpdaterQueriedServer(requery[i].ip, htons(requery[i].port), this->GetFrame());
+		QueriedServer *qs = new UpdaterQueriedServer(NetworkAddress(requery[i].ip, htons(requery[i].port)), this->GetFrame());
 
-		DEBUG(net, 4, "querying %s:%d",
-				inet_ntoa(qs->GetServerAddress()->sin_addr), ntohs(qs->GetServerAddress()->sin_port));
+		DEBUG(net, 4, "querying %s", qs->GetServerAddress()->GetAddressAsString());
 
 		/* Send the game info query */
 		qs->SendFindGameServerPacket(this->GetQuerySocket());
