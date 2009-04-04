@@ -22,22 +22,30 @@ enum {
 class MSQueriedServer : public QueriedServer {
 protected:
 	NetworkAddress query_address;  ///< Address of the incoming UDP packets
+	NetworkAddress reply_address;  ///< Address of the reply UDP packet
 
 public:
 	/**
 	 * Creates a new queried server for the gameserver with the given address
 	 * @param query_address the address of the gameserver
+	 * @param reply_address the address of the requester
 	 * @param frame         time of the last attempt
 	 */
-	MSQueriedServer(NetworkAddress query_address, uint frame);
+	MSQueriedServer(NetworkAddress query_address, NetworkAddress reply_address, uint frame);
 
 	void DoAttempt(UDPServer *server);
+
+	/**
+	 * Gets the address this game server has for us to query.
+	 * @return the address the game server for us to query
+	 */
+	NetworkAddress *GetQueryAddress() { return &this->query_address; }
 
 	/**
 	 * Gets the address this game server has used to query us.
 	 * @return the address the game server used to query us
 	 */
-	NetworkAddress *GetQueryAddress() { return &this->query_address; }
+	NetworkAddress *GetReplyAddress() { return &this->reply_address; }
 };
 
 /**
@@ -66,7 +74,7 @@ public:
 
 	void ReceivePackets();
 
-	MSQueriedServer *GetQueriedServer(const NetworkAddress *client_addr) { return (MSQueriedServer*)UDPServer::GetQueriedServer(client_addr); }
+	MSQueriedServer *GetQueriedServer(NetworkAddress *client_addr) { return (MSQueriedServer*)UDPServer::GetQueriedServer(client_addr); }
 
 	void ServerStateChange() { this->update_serverlist_packet = true; }
 	Packet *GetServerListPacket(); ///< Gets an (relatively) up-to-date packet with all game servers

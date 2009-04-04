@@ -11,9 +11,10 @@
 
 /* Requerying of game servers */
 
-MSQueriedServer::MSQueriedServer(NetworkAddress address, uint frame) : QueriedServer(address, frame)
+MSQueriedServer::MSQueriedServer(NetworkAddress query_address, NetworkAddress reply_address, uint frame) : QueriedServer(query_address, frame)
 {
 	this->query_address = query_address;
+	this->reply_address = reply_address;
 }
 
 void MSQueriedServer::DoAttempt(UDPServer *server)

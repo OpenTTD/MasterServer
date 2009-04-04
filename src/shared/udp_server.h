@@ -64,14 +64,14 @@ struct SockAddrInComparator
 	/**
 	 * Compare two sockaddr_in's on IP address and port
 	 */
-	bool operator()(const NetworkAddress *s1, const NetworkAddress *s2) const
+	bool operator()(NetworkAddress *s1, NetworkAddress *s2) const
 	{
-			return s1 < s2;
+		return *s1 < *s2;
 	}
 };
 
 /** Definition of the QueriedServerMap, which maps an socket address to a queried server */
-typedef std::map<const NetworkAddress*, QueriedServer*, SockAddrInComparator> QueriedServerMap;
+typedef std::map<NetworkAddress*, QueriedServer*, SockAddrInComparator> QueriedServerMap;
 
 class UDPServer : public Server {
 private:
@@ -112,7 +112,7 @@ public:
 	 * @param client_addr the address of the querying server
 	 * @return the queried server, or NULL when we are not querying that server
 	 */
-	QueriedServer *GetQueriedServer(const NetworkAddress *client_addr);
+	QueriedServer *GetQueriedServer(NetworkAddress *client_addr);
 
 	/**
 	 * Adds a server to the to-be queried servers and returns the previous

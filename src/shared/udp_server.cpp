@@ -61,7 +61,7 @@ void UDPServer::RealRun()
 	}
 }
 
-QueriedServer *UDPServer::GetQueriedServer(const NetworkAddress *addr)
+QueriedServer *UDPServer::GetQueriedServer(NetworkAddress *addr)
 {
 	QueriedServerMap::iterator iter = this->queried_servers.find(addr);
 	if (iter == this->queried_servers.end()) return NULL;

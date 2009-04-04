@@ -19,10 +19,11 @@ DEF_UDP_RECEIVE_COMMAND(Query, PACKET_UDP_SERVER_RESPONSE)
 	}
 
 	DEBUG(net, 3, "received a 'server response' from %s", client_addr->GetAddressAsString());
+	DEBUG(net, 9, " ... sending ack to %s", qs->GetReplyAddress()->GetAddressAsString());
 
 	/* Send an okay-signal to the server */
 	Packet packet(PACKET_UDP_MASTER_ACK_REGISTER);
-	this->SendPacket(&packet, qs->GetQueryAddress());
+	this->SendPacket(&packet, qs->GetReplyAddress());
 
 	/* Add the server to the list with online servers */
 	this->ms->GetSQLBackend()->MakeServerOnline(qs);
@@ -47,11 +48,14 @@ DEF_UDP_RECEIVE_COMMAND(Master, PACKET_UDP_SERVER_REGISTER)
 		return;
 	}
 
-	client_addr->SetPort(p->Recv_uint16());
+	NetworkAddress reply_addr(*client_addr);
+	NetworkAddress query_addr(*client_addr);
+	query_addr.SetPort(p->Recv_uint16());
 
-	DEBUG(net, 3, "received a registration request from %s", client_addr->GetAddressAsString());
+	DEBUG(net, 3, "received a registration request from %s", reply_addr.GetAddressAsString());
+	DEBUG(net, 9, " ... for %s", query_addr.GetAddressAsString());
 
-	MSQueriedServer *qs = new MSQueriedServer(*client_addr, this->ms->GetFrame());
+	MSQueriedServer *qs = new MSQueriedServer(query_addr, reply_addr, this->ms->GetFrame());
 
 	/* Shouldn't happen ofcourse, but still ... */
 	if (this->HasClientQuit()) {
