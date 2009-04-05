@@ -2,6 +2,7 @@
 
 #include "shared/stdafx.h"
 #include "shared/debug.h"
+#include "shared/string_func.h"
 #include "masterserver.h"
 
 /**
@@ -42,7 +43,7 @@ DEF_UDP_RECEIVE_COMMAND(Master, PACKET_UDP_SERVER_REGISTER)
 
 	/* See what kind of server we have (protocol wise) */
 	byte master_server_version = p->Recv_uint8();
-	if (master_server_version != 1) {
+	if (master_server_version < 1 || master_server_version > 2) {
 		/* We do not know this master server version */
 		DEBUG(net, 0, "received a registration request with unknown master server version from %s", client_addr->GetHostname());
 		return;
@@ -56,6 +57,13 @@ DEF_UDP_RECEIVE_COMMAND(Master, PACKET_UDP_SERVER_REGISTER)
 	DEBUG(net, 9, " ... for %s", query_addr.GetAddressAsString());
 
 	MSQueriedServer *qs = new MSQueriedServer(query_addr, reply_addr, this->ms->GetFrame());
+	if (master_server_version == 2) {
+		p->Recv_string(qs->identifier, sizeof(qs->identifier));
+	} else {
+		strecpy(qs->identifier, query_addr.GetHostname(), lastof(qs->identifier));
+	}
+	char *port = strecat(qs->identifier, ":", lastof(qs->identifier));
+	seprintf(port, lastof(qs->identifier), "%i", query_addr.GetPort());
 
 	/* Shouldn't happen ofcourse, but still ... */
 	if (this->HasClientQuit()) {

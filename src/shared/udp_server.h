@@ -56,6 +56,12 @@ public:
 	 * @return the server address of this queried server
 	 */
 	NetworkAddress *GetServerAddress() { return &this->server_address; }
+
+	/**
+	 * Get the identifier of the server.
+	 * @return the identifier of the server.
+	 */
+	virtual const char *GetIdentifier() const { return NULL; }
 };
 
 /** Comparator for the struct sockaddr_in's of the QueriedServerMap */

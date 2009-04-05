@@ -21,8 +21,9 @@ enum {
 
 class MSQueriedServer : public QueriedServer {
 protected:
-	NetworkAddress query_address;  ///< Address of the incoming UDP packets
-	NetworkAddress reply_address;  ///< Address of the reply UDP packet
+	friend class MasterNetworkUDPSocketHandler;
+	NetworkAddress reply_address;             ///< Address of the reply UDP packet
+	char identifier[NETWORK_HOSTNAME_LENGTH]; ///< The unique identifier of the server
 
 public:
 	/**
@@ -36,16 +37,12 @@ public:
 	void DoAttempt(UDPServer *server);
 
 	/**
-	 * Gets the address this game server has for us to query.
-	 * @return the address the game server for us to query
-	 */
-	NetworkAddress *GetQueryAddress() { return &this->query_address; }
-
-	/**
 	 * Gets the address this game server has used to query us.
 	 * @return the address the game server used to query us
 	 */
 	NetworkAddress *GetReplyAddress() { return &this->reply_address; }
+
+	/* virtual */ const char *GetIdentifier() const { return this->identifier; }
 };
 
 /**

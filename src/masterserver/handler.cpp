@@ -13,7 +13,6 @@
 
 MSQueriedServer::MSQueriedServer(NetworkAddress query_address, NetworkAddress reply_address, uint frame) : QueriedServer(query_address, frame)
 {
-	this->query_address = query_address;
 	this->reply_address = reply_address;
 }
 

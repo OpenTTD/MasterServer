@@ -1,6 +1,9 @@
 -- phpMyAdmin SQL Dump
+
+SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO";
+
 --
--- Database: `servers`
+-- Database: `msu`
 --
 
 -- --------------------------------------------------------
@@ -9,7 +12,7 @@
 -- Table structure for table `newgrfs`
 --
 
-CREATE TABLE `newgrfs` (
+CREATE TABLE IF NOT EXISTS `newgrfs` (
   `grfid` int(10) unsigned NOT NULL,
   `md5sum` char(32) collate utf8_unicode_ci NOT NULL,
   `name` varchar(80) collate utf8_unicode_ci NOT NULL,
@@ -23,12 +26,9 @@ CREATE TABLE `newgrfs` (
 -- Table structure for table `servers`
 --
 
-CREATE TABLE `servers` (
+CREATE TABLE IF NOT EXISTS `servers` (
   `id` int(11) NOT NULL auto_increment,
-  `ip` tinytext collate utf8_unicode_ci NOT NULL,
-  `port` int(11) NOT NULL default '0',
-  `last_queried` datetime NOT NULL default '0000-00-00 00:00:00',
-  `online` tinyint(1) NOT NULL default '0',
+  `unique_id` tinytext collate utf8_unicode_ci NOT NULL,
   `last_online` datetime NOT NULL default '0000-00-00 00:00:00',
   `created` datetime NOT NULL default '0000-00-00 00:00:00',
   `info_version` tinyint(3) unsigned default NULL,
@@ -51,20 +51,161 @@ CREATE TABLE `servers` (
   `dedicated` tinyint(1) unsigned default NULL,
   `num_grfs` tinyint(3) NOT NULL default '0',
   PRIMARY KEY  (`id`),
-  UNIQUE KEY `ip_port` (`ip`(16),`port`),
-  KEY `last_queried` (`last_queried`,`online`)
+  UNIQUE KEY `unique_id` (`unique_id`(80))
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `servers_ips`
+--
+
+CREATE TABLE IF NOT EXISTS `servers_ips` (
+  `server_id` int(11) NOT NULL,
+  `ipv6` tinyint(1) NOT NULL default '0',
+  `ip` tinytext collate utf8_unicode_ci NOT NULL,
+  `port` int(11) NOT NULL default '0',
+  `last_queried` datetime NOT NULL default '0000-00-00 00:00:00',
+  `online` tinyint(1) NOT NULL default '0',
+  UNIQUE KEY `ip_port` (`ip`(40),`port`),
+  KEY `last_queried` (`last_queried`,`online`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Stand-in structure for view `servers_list`
+--
+CREATE TABLE IF NOT EXISTS `servers_list` (
+`id` int(11)
+,`ips` varchar(341)
+,`last_queried` datetime
+,`online` tinyint(1)
+,`last_online` datetime
+,`created` datetime
+,`info_version` tinyint(3) unsigned
+,`name` tinytext
+,`revision` tinytext
+,`server_lang` tinyint(3) unsigned
+,`use_password` tinyint(1)
+,`clients_max` tinyint(3) unsigned
+,`clients_on` tinyint(3) unsigned
+,`companies_max` tinyint(3) unsigned
+,`companies_on` tinyint(3) unsigned
+,`spectators_max` tinyint(3) unsigned
+,`spectators_on` tinyint(3) unsigned
+,`game_date` tinytext
+,`start_date` tinytext
+,`map_name` tinytext
+,`map_width` smallint(5) unsigned
+,`map_height` smallint(5) unsigned
+,`map_set` tinyint(3) unsigned
+,`dedicated` tinyint(1) unsigned
+,`num_grfs` tinyint(3)
+);
 -- --------------------------------------------------------
 
 --
 -- Table structure for table `servers_newgrfs`
 --
 
-CREATE TABLE `servers_newgrfs` (
+CREATE TABLE IF NOT EXISTS `servers_newgrfs` (
   `server_id` int(11) NOT NULL,
   `grfid` int(10) unsigned NOT NULL,
   `md5sum` char(32) character set latin1 NOT NULL,
   UNIQUE KEY `server_id` (`server_id`,`grfid`,`md5sum`),
   KEY `servers` (`server_id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Structure for view `servers_list`
+--
+DROP TABLE IF EXISTS `servers_list`;
+
+CREATE VIEW `servers_list` AS select `s`.`id` AS `id`,group_concat(concat(`i`.`ip`,_utf8':',cast(`i`.`port` as char(6) charset utf8)) separator ', ') AS `ips`,max(`i`.`last_queried`) AS `last_queried`,max(`i`.`online`) AS `online`,`s`.`last_online` AS `last_online`,`s`.`created` AS `created`,`s`.`info_version` AS `info_version`,`s`.`name` AS `name`,`s`.`revision` AS `revision`,`s`.`server_lang` AS `server_lang`,`s`.`use_password` AS `use_password`,`s`.`clients_max` AS `clients_max`,`s`.`clients_on` AS `clients_on`,`s`.`companies_max` AS `companies_max`,`s`.`companies_on` AS `companies_on`,`s`.`spectators_max` AS `spectators_max`,`s`.`spectators_on` AS `spectators_on`,`s`.`game_date` AS `game_date`,`s`.`start_date` AS `start_date`,`s`.`map_name` AS `map_name`,`s`.`map_width` AS `map_width`,`s`.`map_height` AS `map_height`,`s`.`map_set` AS `map_set`,`s`.`dedicated` AS `dedicated`,`s`.`num_grfs` AS `num_grfs` from (`msu-test`.`servers` `s` join `msu-test`.`servers_ips` `i` on((`s`.`id` = `i`.`server_id`))) group by `s`.`id`;
+
+DELIMITER $$
+--
+-- Procedures
+--
+CREATE PROCEDURE `MakeOffline`(IN p_ip TINYTEXT, IN p_port INT)
+BEGIN
+UPDATE servers_ips SET online='0', last_queried='0000-00-00 00:00:00' WHERE ip=p_ip AND port=p_port;
+END$$
+
+CREATE PROCEDURE `MakeOnline`(IN p_ipv6 BOOL, IN p_ip TINYTEXT, IN p_port INT, IN p_unique_id TINYTEXT)
+BEGIN
+INSERT INTO servers SET unique_id=p_unique_id, created=NOW(), last_online=NOW() ON DUPLICATE KEY UPDATE last_online=NOW();
+INSERT INTO servers_ips SET server_id=(SELECT id FROM servers WHERE unique_id=p_unique_id), ipv6=ipv6, ip=p_ip, port=p_port, last_queried='0000-00-00 00:00:00', online='1' ON DUPLICATE KEY UPDATE online='1';
+END$$
+
+--
+-- Functions
+--
+CREATE FUNCTION `UpdateGameInfo`(
+	p_ip TINYTEXT,
+	p_port INT,
+	p_info_version INT,
+	p_name TINYTEXT,
+	p_revision TINYTEXT,
+	p_server_lang INT,
+	p_use_password INT,
+	p_clients_max INT,
+	p_clients_on INT,
+	p_spectators_max INT,
+	p_spectators_on INT,
+	p_companies_max INT,
+	p_companies_on INT,
+	p_game_date TINYTEXT,
+	p_start_date TINYTEXT,
+	p_map_name TINYTEXT,
+	p_map_width INT,
+	p_map_height INT,
+	p_map_set INT,
+	p_dedicated INT,
+	p_num_grfs INT) RETURNS int(11)
+BEGIN
+	DECLARE r_server_id INT;
+	SELECT server_id INTO r_server_id FROM servers_ips WHERE ip=p_ip AND port=p_port;
+	IF r_server_id IS NULL THEN
+		RETURN 0;
+	END IF;
+	UPDATE
+		servers_ips
+	SET
+		last_queried=NOW(),
+		online='1'
+	WHERE
+		ip='%s' AND
+		port='%d';
+	UPDATE
+		servers
+	SET
+		last_online=NOW(),
+		info_version=p_info_version,
+		name=p_name,
+		revision=p_revision,
+		server_lang=p_server_lang,
+		use_password=p_use_password,
+		clients_max=p_clients_max,
+		clients_on=p_clients_on,
+		spectators_max=p_spectators_max,
+		spectators_on=p_spectators_on,
+		companies_max=p_companies_max,
+		companies_on=p_companies_on,
+		game_date=p_game_date,
+		start_date=p_start_date,
+		map_name=p_map_name,
+		map_width=p_map_width,
+		map_height=p_map_height,
+		map_set=p_map_set,
+		dedicated=p_dedicated,
+		num_grfs=p_num_grfs
+	WHERE
+		id=r_server_id;
+	RETURN r_server_id;
+END$$
+
+DELIMITER ;

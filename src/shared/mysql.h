@@ -20,7 +20,7 @@ protected:
 	 */
 	void MD5sumToString(const uint8 md5sum[16], char *dest);
 
-	void MakeServerOnline(const char *ip, uint16 port);
+	void MakeServerOnline(const char *ip, uint16 port, const char *identifier);
 	void MakeServerOffline(const char *ip, uint16 port);
 	void UpdateNetworkGameInfo(const char *ip, uint16 port, const NetworkGameInfo *info);
 public:

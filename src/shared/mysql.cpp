@@ -33,7 +33,7 @@ MYSQL_RES *MySQLQuery(const char *sql)
 
 	int result = mysql_query(_mysql, sql);
 	if (result) {
-		DEBUG(sql, 0, "SQL Error: %s", sql);
+		DEBUG(sql, 0, "SQL Error: %s executing %s", mysql_error(_mysql), sql);
 		return NULL;
 	}
 
@@ -91,16 +91,19 @@ void MySQL::MD5sumToString(const uint8 md5sum[16], char *dest)
 	dest[32] = '\0';
 }
 
-void MySQL::MakeServerOnline(const char *ip, uint16 port)
+void MySQL::MakeServerOnline(const char *ip, uint16 port, const char *identifier)
 {
 	char sql[MAX_SQL_LEN];
+
+	char safe_identifier[NETWORK_HOSTNAME_LENGTH];
+	this->Quote(safe_identifier, sizeof(safe_identifier), identifier);
 
 	/* Do NOT reset the last_queried when making a server go online,
 	 * as the server regularly sends an advertisement to the server.
 	 * Resetting the last_queried here makes the updater update them
 	 * which is pointless. New servers, and old servers that have really
 	 * come online (last_queried = 0000...) are first in the queue. */
-	snprintf(sql, sizeof(sql), "INSERT INTO servers SET ip='%s', port='%d', last_queried='0000-00-00 00:00:00', created=NOW(), last_online=NOW(), online='1' ON DUPLICATE KEY UPDATE online='1', last_online=NOW()", ip, port);
+	snprintf(sql, sizeof(sql), "CALL MakeOnline('%d', '%s', '%d', '%s')", false, ip, port, safe_identifier);
 	MYSQL_RES *res = MySQLQuery(sql);
 	if (res != NULL) mysql_free_result(res);
 }
@@ -112,7 +115,7 @@ void MySQL::MakeServerOffline(const char *ip, uint16 port)
 	/* Set the 'last_queried' date to a low value, so the next time
 	 * the server is marked online, it will be handled with priority
 	 * by the updater. */
-	snprintf(sql, sizeof(sql), "UPDATE servers SET online='0', last_queried='0000-00-00 00:00:00' WHERE ip='%s' AND port='%d'", ip, port);
+	snprintf(sql, sizeof(sql), "CALL MakeOffline('%s', '%d')", ip, port);
 	MYSQL_RES *res = MySQLQuery(sql);
 	if (res != NULL) mysql_free_result(res);
 }
@@ -120,24 +123,6 @@ void MySQL::MakeServerOffline(const char *ip, uint16 port)
 void MySQL::UpdateNetworkGameInfo(const char *ip, uint16 port, const NetworkGameInfo *info)
 {
 	char sql[MAX_SQL_LEN];
-
-	/* Acquire the server_id for this server */
-	snprintf(sql, sizeof(sql), "SELECT id FROM servers WHERE ip='%s' AND port='%d'", ip, port);
-	MYSQL_RES *res = MySQLQuery(sql);
-	if (res == NULL) return;
-
-	if (mysql_num_rows(res) == 0) {
-		mysql_free_result(res);
-		return;
-	}
-
-	/*
-	 * The server_id is 'just' an index in the DB and the size of the index
-	 * should never exceed 15 characters.
-	 */
-	char server_id[16];
-	snprintf(server_id, sizeof(server_id), "%s", mysql_fetch_row(res)[0]);
-	mysql_free_result(res);
 
 	/*
 	 * Convert some of the variables in the NetworkGameInfo struct to strings
@@ -166,23 +151,32 @@ void MySQL::UpdateNetworkGameInfo(const char *ip, uint16 port, const NetworkGame
 	this->Quote(safe_map_name,        sizeof(safe_map_name),        info->map_name);
 
 	/* Do the actual update of the information */
-	snprintf(sql, sizeof(sql), "UPDATE servers SET last_queried=NOW(), "    \
-						"online='1', last_online=NOW(), "                                 \
-						"info_version='%d', name='%s', revision='%s', server_lang='%d', " \
-						"use_password='%d', clients_max='%d', clients_on='%d', "          \
-						"spectators_max='%d', spectators_on='%d', companies_max='%d', "   \
-						"companies_on='%d', game_date='%s', start_date='%s', "            \
-						"map_name='%s', map_width='%d', map_height='%d', map_set='%d', "  \
-						"dedicated='%d', num_grfs='%d' WHERE id='%s'",
+	snprintf(sql, sizeof(sql), "SELECT UpdateGameInfo ('%s', '%d'," \
+						"'%d', '%s', '%s', '%d', '%d', '%d', '%d', '%d', '%d', '%d', " \
+						"'%d', '%s', '%s', '%s', '%d', '%d', '%d', '%d', '%d')", ip, port,
 						info->game_info_version, safe_server_name, safe_server_revision,
 						info->server_lang, info->use_password, info->clients_max,
 						info->clients_on, info->spectators_max, info->spectators_on,
 						info->companies_max, info->companies_on, game_date,
 						start_date, safe_map_name, info->map_width, info->map_height,
-						info->map_set, info->dedicated, num_grfs, server_id);
+						info->map_set, info->dedicated, num_grfs);
 
-	res = MySQLQuery(sql);
-	if (res != NULL) mysql_free_result(res);
+	MYSQL_RES *res = MySQLQuery(sql);
+	if (res == NULL) return;
+
+	if (mysql_num_rows(res) == 0) {
+		mysql_free_result(res);
+		return;
+	}
+
+	/*
+	 * The server_id is 'just' an index in the DB and the size of the index
+	 * should never exceed 15 characters.
+	 */
+	char server_id[16];
+	snprintf(server_id, sizeof(server_id), "%s", mysql_fetch_row(res)[0]);
+	mysql_free_result(res);
+	if (strcmp(server_id, "0") == 0) return;
 
 	/*
 	 * TODO: is it possible to rewrite the next few lines, so we only need to
@@ -213,7 +207,7 @@ uint MySQL::GetActiveServers(NetworkAddress result[], int length)
 	char sql[MAX_SQL_LEN];
 
 	/* Select the online servers from database */
-	snprintf(sql, sizeof(sql), "SELECT ip, port FROM servers WHERE online='1' ORDER BY revision DESC LIMIT 0,%d", length);
+	snprintf(sql, sizeof(sql), "SELECT ip, port FROM servers_ips WHERE online='1' GROUP BY server_id LIMIT 0,%d", length);
 	MYSQL_RES *res = MySQLQuery(sql);
 	if (res == NULL) return 0;
 
@@ -234,7 +228,7 @@ uint MySQL::GetRequeryServers(NetworkAddress result[], int length, uint interval
 	char sql[MAX_SQL_LEN];
 
 	/* Select the online servers from database */
-	snprintf(sql, sizeof(sql), "SELECT ip, port, id FROM servers "   \
+	snprintf(sql, sizeof(sql), "SELECT ip, port FROM servers_ips "   \
 						"WHERE online='1' AND last_queried < DATE_SUB(NOW(), " \
 						"INTERVAL %d SECOND) ORDER BY last_queried LIMIT 0,%d",
 						interval, length);
@@ -249,7 +243,7 @@ uint MySQL::GetRequeryServers(NetworkAddress result[], int length, uint interval
 		result[i] = NetworkAddress(row[0], atoi(row[1]));
 
 		snprintf(sql, sizeof(sql),
-				"UPDATE servers SET last_queried=NOW() WHERE id='%s'", row[2]);
+				"UPDATE servers_ips SET last_queried=NOW() WHERE ip='%s' AND port='%s'", row[0], row[1]);
 		MYSQL_RES *res2 = MySQLQuery(sql);
 		mysql_free_result(res2);
 	}
@@ -260,7 +254,7 @@ uint MySQL::GetRequeryServers(NetworkAddress result[], int length, uint interval
 
 void MySQL::ResetRequeryIntervals()
 {
-	MYSQL_RES *res = MySQLQuery("UPDATE servers SET last_queried='0000-00-00 00:00:00'");
+	MYSQL_RES *res = MySQLQuery("UPDATE servers_ips SET last_queried='0000-00-00 00:00:00'");
 	mysql_free_result(res);
 }
 

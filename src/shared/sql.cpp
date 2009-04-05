@@ -10,15 +10,19 @@
 
 void SQL::MakeServerOnline(QueriedServer *server)
 {
-	this->MakeServerOnline(server->GetServerAddress()->GetHostname(), server->GetServerAddress()->GetPort());
+	NetworkAddress *address = server->GetServerAddress();
+	this->MakeServerOnline(address->GetHostname(), address->GetPort(),
+			server->GetIdentifier());
 }
 
 void SQL::MakeServerOffline(QueriedServer *server)
 {
-	this->MakeServerOffline(server->GetServerAddress()->GetHostname(), server->GetServerAddress()->GetPort());
+	NetworkAddress *address = server->GetServerAddress();
+	this->MakeServerOffline(address->GetHostname(), address->GetPort());
 }
 
 void SQL::UpdateNetworkGameInfo(QueriedServer *server, NetworkGameInfo *info)
 {
-	this->UpdateNetworkGameInfo(server->GetServerAddress()->GetHostname(), server->GetServerAddress()->GetPort(), info);
+	NetworkAddress *address = server->GetServerAddress();
+	this->UpdateNetworkGameInfo(address->GetHostname(), address->GetPort(), info);
 }
