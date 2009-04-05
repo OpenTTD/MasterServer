@@ -12,7 +12,7 @@ void SQL::MakeServerOnline(QueriedServer *server)
 {
 	NetworkAddress *address = server->GetServerAddress();
 	this->MakeServerOnline(address->GetHostname(), address->GetPort(),
-			server->GetIdentifier());
+			server->GetSessionKey());
 }
 
 void SQL::MakeServerOffline(QueriedServer *server)

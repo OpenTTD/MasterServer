@@ -4,6 +4,7 @@
 #include "shared/debug.h"
 #include "shared/mysql.h"
 #include "masterserver.h"
+#include <time.h>
 
 /**
  * @file masterserver/handler.cpp Handler of retries and updating the server list packet sent to clients
@@ -11,9 +12,10 @@
 
 /* Requerying of game servers */
 
-MSQueriedServer::MSQueriedServer(NetworkAddress query_address, NetworkAddress reply_address, uint frame) : QueriedServer(query_address, frame)
+MSQueriedServer::MSQueriedServer(NetworkAddress query_address, NetworkAddress reply_address, uint64 session_key, uint frame) : QueriedServer(query_address, frame)
 {
 	this->reply_address = reply_address;
+	this->session_key = session_key;
 }
 
 void MSQueriedServer::DoAttempt(UDPServer *server)
@@ -46,6 +48,8 @@ MasterServer::MasterServer(SQL *sql, NetworkAddressList &addresses) : UDPServer(
 	this->serverlist_packet        = NULL;
 	this->update_serverlist_packet = true;
 	this->next_serverlist_frame    = 0;
+	this->session_key              = time(NULL) << 16;
+	srandom(this->session_key);
 
 	this->master_socket = new MasterNetworkUDPSocketHandler(this);
 
@@ -65,6 +69,12 @@ void MasterServer::ReceivePackets()
 {
 	UDPServer::ReceivePackets();
 	this->master_socket->ReceivePackets();
+}
+
+uint64 MasterServer::NextSessionKey()
+{
+	this->session_key += 1 + (random() & 0xFF);
+	return this->session_key;
 }
 
 /**

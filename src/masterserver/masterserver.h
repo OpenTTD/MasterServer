@@ -22,8 +22,8 @@ enum {
 class MSQueriedServer : public QueriedServer {
 protected:
 	friend class MasterNetworkUDPSocketHandler;
-	NetworkAddress reply_address;             ///< Address of the reply UDP packet
-	char identifier[NETWORK_HOSTNAME_LENGTH]; ///< The unique identifier of the server
+	NetworkAddress reply_address; ///< Address of the reply UDP packet
+	uint64 session_key;           ///< The unique identifier of the server
 
 public:
 	/**
@@ -32,7 +32,7 @@ public:
 	 * @param reply_address the address of the requester
 	 * @param frame         time of the last attempt
 	 */
-	MSQueriedServer(NetworkAddress query_address, NetworkAddress reply_address, uint frame);
+	MSQueriedServer(NetworkAddress query_address, NetworkAddress reply_address, uint64 session_key, uint frame);
 
 	void DoAttempt(UDPServer *server);
 
@@ -42,7 +42,7 @@ public:
 	 */
 	NetworkAddress *GetReplyAddress() { return &this->reply_address; }
 
-	/* virtual */ const char *GetIdentifier() const { return this->identifier; }
+	/* virtual */ uint64 GetSessionKey() const { return this->session_key; }
 };
 
 /**
@@ -53,6 +53,7 @@ private:
 	bool update_serverlist_packet; ///< Whether to update the cached server list packet
 	Packet *serverlist_packet;     ///< The cached server list packet
 	uint next_serverlist_frame;    ///< Frame where to make a new server list packet
+	uint64 session_key;            ///< New session key to give out
 
 protected:
 	NetworkUDPSocketHandler *master_socket; ///< Socket to listen for registration, unregistration and queries for the server list
@@ -75,6 +76,12 @@ public:
 
 	void ServerStateChange() { this->update_serverlist_packet = true; }
 	Packet *GetServerListPacket(); ///< Gets an (relatively) up-to-date packet with all game servers
+
+	/**
+	 * Get the next, semi-random, session key
+	 * @return the session key
+	 */
+	uint64 NextSessionKey();
 };
 
 /** Handler for the query socket of the masterserver */

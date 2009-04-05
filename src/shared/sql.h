@@ -20,7 +20,7 @@ class QueriedServer;
 class SQL {
 protected:
 	/** Same as public MakeServerOnline but ip, port instead of QueriedServer */
-	virtual void MakeServerOnline(const char *ip, uint16 port, const char *identifier) = 0;
+	virtual void MakeServerOnline(const char *ip, uint16 port, uint64 session_key) = 0;
 	/** Same as public MakeServerOffline but ip, port instead of QueriedServer */
 	virtual void MakeServerOffline(const char *ip, uint16 port) = 0;
 	/** Same as public UpdateNetworkGameInfo but ip, port instead of QueriedServer */

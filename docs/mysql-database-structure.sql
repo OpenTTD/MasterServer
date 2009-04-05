@@ -12,7 +12,7 @@ SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO";
 -- Table structure for table `newgrfs`
 --
 
-CREATE TABLE IF NOT EXISTS `newgrfs` (
+CREATE TABLE `newgrfs` (
   `grfid` int(10) unsigned NOT NULL,
   `md5sum` char(32) collate utf8_unicode_ci NOT NULL,
   `name` varchar(80) collate utf8_unicode_ci NOT NULL,
@@ -26,9 +26,9 @@ CREATE TABLE IF NOT EXISTS `newgrfs` (
 -- Table structure for table `servers`
 --
 
-CREATE TABLE IF NOT EXISTS `servers` (
+CREATE TABLE `servers` (
   `id` int(11) NOT NULL auto_increment,
-  `unique_id` tinytext collate utf8_unicode_ci NOT NULL,
+  `session_key` bigint(20) NOT NULL,
   `last_online` datetime NOT NULL default '0000-00-00 00:00:00',
   `created` datetime NOT NULL default '0000-00-00 00:00:00',
   `info_version` tinyint(3) unsigned default NULL,
@@ -51,7 +51,7 @@ CREATE TABLE IF NOT EXISTS `servers` (
   `dedicated` tinyint(1) unsigned default NULL,
   `num_grfs` tinyint(3) NOT NULL default '0',
   PRIMARY KEY  (`id`),
-  UNIQUE KEY `unique_id` (`unique_id`(80))
+  UNIQUE KEY `session_key` (`session_key`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 -- --------------------------------------------------------
@@ -60,7 +60,7 @@ CREATE TABLE IF NOT EXISTS `servers` (
 -- Table structure for table `servers_ips`
 --
 
-CREATE TABLE IF NOT EXISTS `servers_ips` (
+CREATE TABLE `servers_ips` (
   `server_id` int(11) NOT NULL,
   `ipv6` tinyint(1) NOT NULL default '0',
   `ip` tinytext collate utf8_unicode_ci NOT NULL,
@@ -74,42 +74,10 @@ CREATE TABLE IF NOT EXISTS `servers_ips` (
 -- --------------------------------------------------------
 
 --
--- Stand-in structure for view `servers_list`
---
-CREATE TABLE IF NOT EXISTS `servers_list` (
-`id` int(11)
-,`ips` varchar(341)
-,`last_queried` datetime
-,`online` tinyint(1)
-,`last_online` datetime
-,`created` datetime
-,`info_version` tinyint(3) unsigned
-,`name` tinytext
-,`revision` tinytext
-,`server_lang` tinyint(3) unsigned
-,`use_password` tinyint(1)
-,`clients_max` tinyint(3) unsigned
-,`clients_on` tinyint(3) unsigned
-,`companies_max` tinyint(3) unsigned
-,`companies_on` tinyint(3) unsigned
-,`spectators_max` tinyint(3) unsigned
-,`spectators_on` tinyint(3) unsigned
-,`game_date` tinytext
-,`start_date` tinytext
-,`map_name` tinytext
-,`map_width` smallint(5) unsigned
-,`map_height` smallint(5) unsigned
-,`map_set` tinyint(3) unsigned
-,`dedicated` tinyint(1) unsigned
-,`num_grfs` tinyint(3)
-);
--- --------------------------------------------------------
-
---
 -- Table structure for table `servers_newgrfs`
 --
 
-CREATE TABLE IF NOT EXISTS `servers_newgrfs` (
+CREATE TABLE `servers_newgrfs` (
   `server_id` int(11) NOT NULL,
   `grfid` int(10) unsigned NOT NULL,
   `md5sum` char(32) character set latin1 NOT NULL,
@@ -122,9 +90,7 @@ CREATE TABLE IF NOT EXISTS `servers_newgrfs` (
 --
 -- Structure for view `servers_list`
 --
-DROP TABLE IF EXISTS `servers_list`;
-
-CREATE VIEW `servers_list` AS select `s`.`id` AS `id`,group_concat(concat(`i`.`ip`,_utf8':',cast(`i`.`port` as char(6) charset utf8)) separator ', ') AS `ips`,max(`i`.`last_queried`) AS `last_queried`,max(`i`.`online`) AS `online`,`s`.`last_online` AS `last_online`,`s`.`created` AS `created`,`s`.`info_version` AS `info_version`,`s`.`name` AS `name`,`s`.`revision` AS `revision`,`s`.`server_lang` AS `server_lang`,`s`.`use_password` AS `use_password`,`s`.`clients_max` AS `clients_max`,`s`.`clients_on` AS `clients_on`,`s`.`companies_max` AS `companies_max`,`s`.`companies_on` AS `companies_on`,`s`.`spectators_max` AS `spectators_max`,`s`.`spectators_on` AS `spectators_on`,`s`.`game_date` AS `game_date`,`s`.`start_date` AS `start_date`,`s`.`map_name` AS `map_name`,`s`.`map_width` AS `map_width`,`s`.`map_height` AS `map_height`,`s`.`map_set` AS `map_set`,`s`.`dedicated` AS `dedicated`,`s`.`num_grfs` AS `num_grfs` from (`msu-test`.`servers` `s` join `msu-test`.`servers_ips` `i` on((`s`.`id` = `i`.`server_id`))) group by `s`.`id`;
+CREATE VIEW `servers_list` AS select `s`.`id` AS `id`,group_concat((case `i`.`online` when 1 then concat(`i`.`ip`,_utf8':',cast(`i`.`port` as char(6) charset utf8)) else NULL end) separator ', ') AS `ips`,max(`i`.`last_queried`) AS `last_queried`,max(`i`.`online`) AS `online`,`s`.`last_online` AS `last_online`,`s`.`created` AS `created`,`s`.`info_version` AS `info_version`,`s`.`name` AS `name`,`s`.`revision` AS `revision`,`s`.`server_lang` AS `server_lang`,`s`.`use_password` AS `use_password`,`s`.`clients_max` AS `clients_max`,`s`.`clients_on` AS `clients_on`,`s`.`companies_max` AS `companies_max`,`s`.`companies_on` AS `companies_on`,`s`.`spectators_max` AS `spectators_max`,`s`.`spectators_on` AS `spectators_on`,`s`.`game_date` AS `game_date`,`s`.`start_date` AS `start_date`,`s`.`map_name` AS `map_name`,`s`.`map_width` AS `map_width`,`s`.`map_height` AS `map_height`,`s`.`map_set` AS `map_set`,`s`.`dedicated` AS `dedicated`,`s`.`num_grfs` AS `num_grfs` from (`servers` `s` join `servers_ips` `i` on((`s`.`id` = `i`.`server_id`))) group by `s`.`id`;
 
 DELIMITER $$
 --
@@ -132,13 +98,29 @@ DELIMITER $$
 --
 CREATE PROCEDURE `MakeOffline`(IN p_ip TINYTEXT, IN p_port INT)
 BEGIN
-UPDATE servers_ips SET online='0', last_queried='0000-00-00 00:00:00' WHERE ip=p_ip AND port=p_port;
+	UPDATE servers_ips SET online='0', last_queried='0000-00-00 00:00:00' WHERE ip=p_ip AND port=p_port;
 END$$
 
-CREATE PROCEDURE `MakeOnline`(IN p_ipv6 BOOL, IN p_ip TINYTEXT, IN p_port INT, IN p_unique_id TINYTEXT)
+CREATE PROCEDURE `MakeOnline`(
+	IN p_ipv6 BOOL,
+	IN p_ip TINYTEXT,
+	IN p_port INT,
+	IN p_session_key BIGINT)
 BEGIN
-INSERT INTO servers SET unique_id=p_unique_id, created=NOW(), last_online=NOW() ON DUPLICATE KEY UPDATE last_online=NOW();
-INSERT INTO servers_ips SET server_id=(SELECT id FROM servers WHERE unique_id=p_unique_id), ipv6=ipv6, ip=p_ip, port=p_port, last_queried='0000-00-00 00:00:00', online='1' ON DUPLICATE KEY UPDATE online='1';
+	DECLARE v_server_id INT;
+	DECLARE v_session_key BIGINT;
+	SELECT server_id INTO v_server_id FROM servers_ips WHERE ip=p_ip AND port=p_port;
+	IF v_server_id IS NULL OR v_server_id = 0 THEN
+		INSERT INTO servers SET session_key=p_session_key, created=NOW(), last_online=NOW() ON DUPLICATE KEY UPDATE last_online=NOW();
+		SELECT id INTO v_server_id FROM servers WHERE session_key=p_session_key;
+	ELSE
+		SELECT session_key INTO v_session_key FROM servers WHERE id=v_server_id;
+		IF v_session_key <> p_session_key THEN
+			UPDATE servers_ips SET server_id=0 WHERE server_id=v_server_id;
+			UPDATE servers SET session_key=p_session_key WHERE id=v_server_id;
+		END IF;
+	END IF;
+	INSERT INTO servers_ips SET server_id=v_server_id, ipv6=ipv6, ip=p_ip, port=p_port, last_queried='0000-00-00 00:00:00', online='1' ON DUPLICATE KEY UPDATE online='1', server_id=v_server_id;
 END$$
 
 --

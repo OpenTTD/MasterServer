@@ -58,10 +58,10 @@ public:
 	NetworkAddress *GetServerAddress() { return &this->server_address; }
 
 	/**
-	 * Get the identifier of the server.
-	 * @return the identifier of the server.
+	 * Get the session key of the server.
+	 * @return the session key of the server.
 	 */
-	virtual const char *GetIdentifier() const { return NULL; }
+	virtual uint64 GetSessionKey() const { return 0; }
 };
 
 /** Comparator for the struct sockaddr_in's of the QueriedServerMap */

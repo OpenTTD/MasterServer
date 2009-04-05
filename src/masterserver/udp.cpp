@@ -56,20 +56,31 @@ DEF_UDP_RECEIVE_COMMAND(Master, PACKET_UDP_SERVER_REGISTER)
 	DEBUG(net, 3, "received a registration request from %s", reply_addr.GetAddressAsString());
 	DEBUG(net, 9, " ... for %s", query_addr.GetAddressAsString());
 
-	MSQueriedServer *qs = new MSQueriedServer(query_addr, reply_addr, this->ms->GetFrame());
+	uint64 session_key;
 	if (master_server_version == 2) {
-		p->Recv_string(qs->identifier, sizeof(qs->identifier));
-	} else {
-		strecpy(qs->identifier, query_addr.GetHostname(), lastof(qs->identifier));
+		session_key = p->Recv_uint64();
+		if (session_key == 0) {
+			DEBUG(net, 9, "sending session key to %s", reply_addr.GetAddressAsString());
+
+			/* Send a new session key */
+			Packet packet(PACKET_UDP_MASTER_SESSION_KEY);
+			packet.Send_uint64(this->ms->NextSessionKey());
+			this->SendPacket(&packet, &reply_addr);
+			return;
+		}
+	} else if (query_addr.GetAddress()->ss_family != AF_INET) {
+		DEBUG(net, 0, "received non IPv4 registration with version 1 from %s", client_addr->GetHostname());
+		return;
+	} else { // master_server_version == 1
+		session_key = ntohl(((sockaddr_in*)query_addr.GetAddress())->sin_addr.s_addr);
 	}
-	char *port = strecat(qs->identifier, ":", lastof(qs->identifier));
-	seprintf(port, lastof(qs->identifier), "%i", query_addr.GetPort());
 
 	/* Shouldn't happen ofcourse, but still ... */
 	if (this->HasClientQuit()) {
-		delete qs;
 		return;
 	}
+
+	MSQueriedServer *qs = new MSQueriedServer(query_addr, reply_addr, session_key, this->ms->GetFrame());
 
 	/* Now request some data from the server to see if it is really alive */
 	qs->SendFindGameServerPacket(this->ms->GetQuerySocket());
@@ -82,7 +93,7 @@ DEF_UDP_RECEIVE_COMMAND(Master, PACKET_UDP_SERVER_UNREGISTER)
 {
 	/* See what kind of server we have (protocol wise) */
 	uint8 master_server_version = p->Recv_uint8();
-	if (master_server_version != 1) {
+	if (master_server_version < 1 || master_server_version > 2) {
 		/* We do not know this version, bail out */
 		DEBUG(net, 0, "received a unregistration request from %s with unknown master server version",
 				client_addr->GetAddressAsString());
