@@ -22,10 +22,3 @@ void SQL::UpdateNetworkGameInfo(QueriedServer *server, NetworkGameInfo *info)
 {
 	this->UpdateNetworkGameInfo(server->GetServerAddress()->GetHostname(), server->GetServerAddress()->GetPort(), info);
 }
-
-void SQL::AddServerAddress(ServerAddress result[], int index, const char *ip, uint16 port)
-{
-	result[index].ip   = inet_addr(ip);
-	result[index].port = port;
-}
-

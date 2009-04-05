@@ -3,6 +3,7 @@
 #ifndef SQL_H
 #define SQL_H
 
+#include "shared/network/core/address.h"
 #include "shared/network/core/game.h"
 #include "shared/network/core/tcp_content.h"
 
@@ -12,12 +13,6 @@
 
 /* Forward declare the QueriedServer, as we use it here and server.h uses SQL */
 class QueriedServer;
-
-/** Simple structure to hold the IP and port of a server in */
-struct ServerAddress {
-	uint32 ip;   ///< The IP part of the address
-	uint16 port; ///< The port part of the address
-};
 
 /**
  * Abstract 'interface' for all SQL clients
@@ -30,15 +25,6 @@ protected:
 	virtual void MakeServerOffline(const char *ip, uint16 port) = 0;
 	/** Same as public UpdateNetworkGameInfo but ip, port instead of QueriedServer */
 	virtual void UpdateNetworkGameInfo(const char *ip, uint16 port, const NetworkGameInfo *info) = 0;
-
-	/**
-	 * Adds a specific IP + port to the given index a ServerAddress list
-	 * @param result table to place the IP and port in
-	 * @param index  index into the result table
-	 * @param ip     the IP address to add
-	 * @param port   the port to add
-	 */
-	void AddServerAddress(ServerAddress result[], int index, const char *ip, uint16 port);
 public:
 	/** The obvious destructor */
 	virtual ~SQL() {}
@@ -84,7 +70,7 @@ public:
 	 * @param length the length of the result table
 	 * @return the number of active servers added to the list
 	 */
-	virtual uint GetActiveServers(ServerAddress result[], int length) = 0;
+	virtual uint GetActiveServers(NetworkAddress result[], int length) = 0;
 
 	/**
 	 * Fills result with up-to length to be requeried servers servers.
@@ -96,7 +82,7 @@ public:
 	 *                 returned servers again.
 	 * @return the number of serves to requery servers added to the list
 	 */
-	virtual uint GetRequeryServers(ServerAddress result[], int length, uint interval) = 0;
+	virtual uint GetRequeryServers(NetworkAddress result[], int length, uint interval) = 0;
 
 	/**
 	 * Resets the requery timers/intervals of all servers, so they will

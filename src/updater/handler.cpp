@@ -156,11 +156,11 @@ void Updater::CheckServers()
 	 * These servers are either new or they have not been queried
 	 * for.UPDATER_SERVER_REQUERY_INTERVAL seconds.
 	 */
-	ServerAddress requery[UPDATER_MAX_REQUERIED_SERVERS];
+	NetworkAddress requery[UPDATER_MAX_REQUERIED_SERVERS];
 	uint count = this->sql->GetRequeryServers(requery, UPDATER_MAX_REQUERIED_SERVERS, UPDATER_SERVER_REQUERY_INTERVAL);
 
 	for (uint i = 0; i < count; i++) {
-		QueriedServer *qs = new UpdaterQueriedServer(NetworkAddress(requery[i].ip, htons(requery[i].port)), this->GetFrame());
+		QueriedServer *qs = new UpdaterQueriedServer(requery[i], this->GetFrame());
 
 		DEBUG(net, 4, "querying %s", qs->GetServerAddress()->GetAddressAsString());
 

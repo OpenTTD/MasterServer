@@ -102,14 +102,14 @@ Packet *MasterServer::GetServerListPacket()
 		this->serverlist_packet = NetworkSend_Init(PACKET_UDP_MASTER_RESPONSE_LIST);
 		this->serverlist_packet->Send_uint8(NETWORK_MASTER_SERVER_VERSION);
 
-		ServerAddress servers[max_count];
+		NetworkAddress servers[max_count];
 		count = this->sql->GetActiveServers(servers, max_count);
 
 		/* Fill the packet */
 		this->serverlist_packet->Send_uint16(count);
 		for (int i = 0; i < count; i++) {
-			this->serverlist_packet->Send_uint32(servers[i].ip);
-			this->serverlist_packet->Send_uint16(servers[i].port);
+			this->serverlist_packet->Send_uint32(((sockaddr_in*)servers[i].GetAddress())->sin_addr.s_addr);
+			this->serverlist_packet->Send_uint16(servers[i].GetPort());
 		}
 
 		/* Schedule the next retry */

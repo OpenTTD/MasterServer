@@ -30,8 +30,8 @@ public:
 	/** Frees all connections to the SQL database */
 	~MySQL();
 
-	uint GetActiveServers(ServerAddress result[], int length);
-	uint GetRequeryServers(ServerAddress result[], int length, uint interval);
+	uint GetActiveServers(NetworkAddress result[], int length);
+	uint GetRequeryServers(NetworkAddress result[], int length, uint interval);
 	void ResetRequeryIntervals();
 
 	void AddGRF(const GRFIdentifier *grf);

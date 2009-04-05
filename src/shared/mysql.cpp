@@ -208,7 +208,7 @@ void MySQL::UpdateNetworkGameInfo(const char *ip, uint16 port, const NetworkGame
 	}
 }
 
-uint MySQL::GetActiveServers(ServerAddress result[], int length)
+uint MySQL::GetActiveServers(NetworkAddress result[], int length)
 {
 	char sql[MAX_SQL_LEN];
 
@@ -222,14 +222,14 @@ uint MySQL::GetActiveServers(ServerAddress result[], int length)
 
 	for (uint i = 0; i < count; i++) {
 		MYSQL_ROW row = mysql_fetch_row(res);
-		this->AddServerAddress(result, i, row[0], atoi(row[1]));
+		result[i] = NetworkAddress(row[0], atoi(row[1]));
 	}
 
 	mysql_free_result(res);
 	return count;
 }
 
-uint MySQL::GetRequeryServers(ServerAddress result[], int length, uint interval)
+uint MySQL::GetRequeryServers(NetworkAddress result[], int length, uint interval)
 {
 	char sql[MAX_SQL_LEN];
 
@@ -246,7 +246,7 @@ uint MySQL::GetRequeryServers(ServerAddress result[], int length, uint interval)
 
 	for (uint i = 0; i < count; i++) {
 		MYSQL_ROW row = mysql_fetch_row(res);
-		this->AddServerAddress(result, i, row[0], atoi(row[1]));
+		result[i] = NetworkAddress(row[0], atoi(row[1]));
 
 		snprintf(sql, sizeof(sql),
 				"UPDATE servers SET last_queried=NOW() WHERE id='%s'", row[2]);
