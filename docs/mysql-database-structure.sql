@@ -120,7 +120,7 @@ BEGIN
 			UPDATE servers SET session_key=p_session_key WHERE id=v_server_id;
 		END IF;
 	END IF;
-	INSERT INTO servers_ips SET server_id=v_server_id, ipv6=ipv6, ip=p_ip, port=p_port, last_queried='0000-00-00 00:00:00', online='1' ON DUPLICATE KEY UPDATE online='1', server_id=v_server_id;
+	INSERT INTO servers_ips SET server_id=v_server_id, ipv6=p_ipv6, ip=p_ip, port=p_port, last_queried='0000-00-00 00:00:00', online='1' ON DUPLICATE KEY UPDATE online='1', server_id=v_server_id;
 END$$
 
 --
