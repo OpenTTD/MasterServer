@@ -127,6 +127,10 @@ DEF_UDP_RECEIVE_COMMAND(Master, PACKET_UDP_CLIENT_GET_LIST)
 
 	DEBUG(net, 3, "received a request for the game server list from %s", client_addr->GetAddressAsString());
 	ServerListType type = SLT_IPv4;
+	if (master_server_version == 2) {
+		type = (ServerListType)p->Recv_uint8();
+		if (type >= SLT_AUTODETECT) type = client_addr->IsFamily(AF_INET) ? SLT_IPv4 : SLT_IPv6;
+	}
 
 	this->SendPacket(this->ms->GetServerListPacket(type), client_addr);
 }

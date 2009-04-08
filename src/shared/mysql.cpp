@@ -84,7 +84,7 @@ void MySQL::MD5sumToString(const uint8 md5sum[16], char *dest)
 {
 	static const char *digits = "0123456789ABCDEF";
 
-	for (uint j = 0; j < 16; j) {
+	for (uint j = 0; j < 16; j++) {
 		dest[j * 2    ] = digits[md5sum[j] / 16];
 		dest[j * 2 + 1] = digits[md5sum[j] % 16];
 	}

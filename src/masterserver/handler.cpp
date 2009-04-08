@@ -112,10 +112,12 @@ Packet *MasterServer::GetServerListPacket(ServerListType type)
 		 * to place the advertised servers in. Which is then divided by the
 		 * amount of bytes needed to encode the IP address and the port of a
 		 * single server.
+		 *
+		 * For IPv6 addresses we send an in6_addr and for IPv4 address an in_addr.
 		 */
 		static const uint16 max_count[SLT_END] = {
-			(sizeof(this->serverlist_packet[0]->buffer) - sizeof(PacketSize) - sizeof(PacketType) - sizeof(count)) / (sizeof(uint32) + sizeof(uint16)),
-			(sizeof(this->serverlist_packet[1]->buffer) - sizeof(PacketSize) - sizeof(PacketType) - sizeof(count)) / (sizeof(uint32) + 128 / 8 + sizeof(uint16))
+			(sizeof(this->serverlist_packet[0]->buffer) - sizeof(PacketSize) - sizeof(PacketType) - sizeof(count)) / (sizeof(in_addr) + sizeof(uint16)),
+			(sizeof(this->serverlist_packet[1]->buffer) - sizeof(PacketSize) - sizeof(PacketType) - sizeof(count)) / (sizeof(in6_addr) + sizeof(uint16))
 		};
 
 		DEBUG(net, 4, "[server list] rebuilding the IPv%d server list", 4 + type * 2);
@@ -132,7 +134,12 @@ Packet *MasterServer::GetServerListPacket(ServerListType type)
 		/* Fill the packet */
 		p->Send_uint16(count);
 		for (int i = 0; i < count; i++) {
-			p->Send_uint32(((sockaddr_in*)servers[i].GetAddress())->sin_addr.s_addr);
+			if (type == SLT_IPv6) {
+				byte *addr = (byte*)&((sockaddr_in6*)servers[i].GetAddress())->sin6_addr;
+				for (uint i = 0; i < sizeof(in6_addr); i++) p->Send_uint8(*addr++);
+			} else {
+				p->Send_uint32(((sockaddr_in*)servers[i].GetAddress())->sin_addr.s_addr);
+			}
 			p->Send_uint16(servers[i].GetPort());
 		}
 
