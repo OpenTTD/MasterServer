@@ -8,14 +8,9 @@
  * @file udp_server.cpp Shared UDP server (master server/updater) related functionality
  */
 
-UDPServer::UDPServer(SQL *sql, NetworkAddressList &addresses, NetworkUDPSocketHandler *query_socket) : Server(sql)
+UDPServer::UDPServer(SQL *sql) : Server(sql)
 {
-	this->query_socket = query_socket;
 	this->frame        = 0;
-
-	if (!this->query_socket->Listen(NetworkAddress(addresses[0].GetHostname(), 0), false)) {
-		error("Could not bind to %s:0\n", addresses[0].GetHostname());
-	}
 }
 
 UDPServer::~UDPServer()

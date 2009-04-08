@@ -102,11 +102,14 @@ void UpdaterQueriedServer::AddMissingGRF(const GRFIdentifier *grf)
 }
 
 
-Updater::Updater(SQL *sql, NetworkAddressList &addresses) : UDPServer(sql, addresses, new UpdaterNetworkUDPSocketHandler(this))
+Updater::Updater(SQL *sql, NetworkAddressList *addresses) : UDPServer(sql)
 {
 	/* We reset the requery intervals, so all servers that are marked
 	 * on-line get an initial sweep on startup of the application. */
 	this->sql->ResetRequeryIntervals();
+
+	this->query_socket = new UpdaterNetworkUDPSocketHandler(this, addresses);
+	if (!this->query_socket->Listen()) error("Could not bind query socket\n");
 }
 
 Updater::~Updater()

@@ -43,7 +43,7 @@ void MSQueriedServer::DoAttempt(UDPServer *server)
 	this->frame = server->GetFrame();
 }
 
-MasterServer::MasterServer(SQL *sql, NetworkAddressList &addresses) : UDPServer(sql, addresses, new QueryNetworkUDPSocketHandler(this))
+MasterServer::MasterServer(SQL *sql, NetworkAddressList *addresses) : UDPServer(sql)
 {
 	this->serverlist_packet        = NULL;
 	this->update_serverlist_packet = true;
@@ -51,12 +51,17 @@ MasterServer::MasterServer(SQL *sql, NetworkAddressList &addresses) : UDPServer(
 	this->session_key              = time(NULL) << 16;
 	srandom(this->session_key);
 
-	this->master_socket = new MasterNetworkUDPSocketHandler(this);
+	this->master_socket = new MasterNetworkUDPSocketHandler(this, addresses);
 
 	/* Bind master socket*/
-	if (!this->master_socket->Listen(addresses[0], false)) {
-		error("Could not bind to %s\n", addresses[0].GetAddressAsString());
+	if (!this->master_socket->Listen()) error("Could not bind listening socket\n");
+
+	for (NetworkAddress *addr = addresses->Begin(); addr != addresses->End(); addr++) {
+		addr->SetPort(0);
 	}
+
+	this->query_socket = new QueryNetworkUDPSocketHandler(this, addresses);
+	if (!this->query_socket->Listen()) error("Could not bind query socket\n");
 }
 
 MasterServer::~MasterServer()

@@ -92,7 +92,7 @@ public:
 	 * @param sql       the SQL server to use for persistent data storage
 	 * @param addresses the host to bind on
 	 */
-	Updater(SQL *sql, NetworkAddressList &addresses);
+	Updater(SQL *sql, NetworkAddressList *addresses);
 
 	/** The obvious destructor */
 	~Updater();
@@ -137,8 +137,12 @@ public:
 	/**
 	 * Create a new updater socket handler for a given updater
 	 * @param updater the updater this socket is related to
+	 * @param addresses the host to bind on
 	 */
-	UpdaterNetworkUDPSocketHandler(Updater *updater) { this->updater = updater; }
+	UpdaterNetworkUDPSocketHandler(Updater *updater, NetworkAddressList *addresses) :
+		NetworkUDPSocketHandler(addresses),
+		updater(updater)
+	{}
 
 	/** The obvious destructor */
 	virtual ~UpdaterNetworkUDPSocketHandler() {}

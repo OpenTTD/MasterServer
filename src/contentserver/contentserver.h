@@ -28,7 +28,7 @@ protected:
 	 */
 	void AcceptClients(SOCKET listen_socket);
 
-	SmallVector<SOCKET, 2> listen_sockets;    ///< Sockets we are listening on
+	SocketList listen_sockets;                ///< Sockets we are listening on
 	ServerNetworkContentSocketHandler *first; ///< The first socket, part of linked list
 public:
 	/**

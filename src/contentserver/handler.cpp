@@ -12,18 +12,16 @@
 ContentServer::ContentServer(SQL *sql, NetworkAddressList &addresses) : Server(sql), first(NULL)
 {
 	for (NetworkAddress *address = addresses.Begin(); address != addresses.End(); address++) {
-		SOCKET s = address->Listen(AF_UNSPEC, SOCK_STREAM);
-		if (s == INVALID_SOCKET) {
-			error("Could not bind to %s\n", address->GetAddressAsString());
-		}
-		*this->listen_sockets.Append() = s;
+		address->Listen(SOCK_STREAM, &this->listen_sockets);
 	}
+
+	if (this->listen_sockets.Length() == 0) error("Could not bind.");
 }
 
 ContentServer::~ContentServer()
 {
-	for (SOCKET *s = listen_sockets.Begin(); s != listen_sockets.End(); s++) {
-		closesocket(*s);
+	for (SocketList::iterator s = listen_sockets.Begin(); s != listen_sockets.End(); s++) {
+		closesocket(s->second);
 	}
 	while (this->first != NULL) delete this->first;
 }
@@ -60,8 +58,8 @@ void ContentServer::RealRun()
 		}
 
 		/* take care of listener port */
-		for (SOCKET *s = listen_sockets.Begin(); s != listen_sockets.End(); s++) {
-			FD_SET(*s, &read_fd);
+		for (SocketList::iterator s = listen_sockets.Begin(); s != listen_sockets.End(); s++) {
+			FD_SET(s->second, &read_fd);
 		}
 
 		/* Wait for a second */
@@ -74,9 +72,9 @@ void ContentServer::RealRun()
 #endif
 		/* accept clients.. */
 		/* take care of listener port */
-		for (SOCKET *s = listen_sockets.Begin(); s != listen_sockets.End(); s++) {
-			if (FD_ISSET(*s, &read_fd)) {
-				this->AcceptClients(*s);
+		for (SocketList::iterator s = listen_sockets.Begin(); s != listen_sockets.End(); s++) {
+			if (FD_ISSET(s->second, &read_fd)) {
+				this->AcceptClients(s->second);
 			}
 		}
 

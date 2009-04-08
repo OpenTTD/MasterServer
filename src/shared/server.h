@@ -13,7 +13,7 @@
  * @file server.h Shared server (master server/updater) related functionality
  */
 
-typedef SmallVector<NetworkAddress, 2> NetworkAddressList;
+typedef SmallVector<NetworkAddress, 4> NetworkAddressList;
 
 class Server {
 protected:

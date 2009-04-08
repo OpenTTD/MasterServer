@@ -179,7 +179,11 @@ void ParseCommandArguments(int argc, char *argv[], NetworkAddressList &hostnames
 		}
 	}
 
+	/* As hostname NULL and port 0/NULL don't go well when
+	 * resolving it we need to add an address for each of
+	 * the address families we support. */
 	if (hostnames.Length() == 0) {
-		*hostnames.Append() = NetworkAddress("::", port);
+		*hostnames.Append() = NetworkAddress(NULL, port, AF_INET);
+		*hostnames.Append() = NetworkAddress(NULL, port, AF_INET6);
 	}
 }

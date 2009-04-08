@@ -65,7 +65,7 @@ public:
 	 * @param sql         the SQL server used as persistent storage
 	 * @param addresses   the addresses to bind on
 	 */
-	MasterServer(SQL *sql, NetworkAddressList &addresses);
+	MasterServer(SQL *sql, NetworkAddressList *addresses);
 
 	/** The obvious destructor */
 	~MasterServer();
@@ -93,8 +93,12 @@ public:
 	/**
 	 * Create a new query socket handler for a given masterserver
 	 * @param ms the masterserver this socket is related to
+	 * @param addresses the host to bind on
 	 */
-	QueryNetworkUDPSocketHandler(MasterServer *ms) { this->ms = ms; }
+	QueryNetworkUDPSocketHandler(MasterServer *ms, NetworkAddressList *addresses) :
+		NetworkUDPSocketHandler(addresses),
+		ms(ms)
+	{}
 
 	/** The obvious destructor */
 	virtual ~QueryNetworkUDPSocketHandler() {}
@@ -111,8 +115,12 @@ public:
 	/**
 	 * Create a new masterserver socket handler for a given masterserver
 	 * @param ms the masterserver this socket is related to
+	 * @param addresses the addresses to bind on
 	 */
-	MasterNetworkUDPSocketHandler(MasterServer *ms) { this->ms = ms; }
+	MasterNetworkUDPSocketHandler(MasterServer *ms, NetworkAddressList *addresses) :
+		NetworkUDPSocketHandler(addresses),
+		ms(ms)
+	{}
 
 	/** The obvious destructor */
 	virtual ~MasterNetworkUDPSocketHandler() {}
