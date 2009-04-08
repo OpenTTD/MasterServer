@@ -117,7 +117,7 @@ Packet *MasterServer::GetServerListPacket()
 		this->serverlist_packet->Send_uint8(NETWORK_MASTER_SERVER_VERSION);
 
 		NetworkAddress servers[max_count];
-		count = this->sql->GetActiveServers(servers, max_count);
+		count = this->sql->GetActiveServers(servers, max_count, false);
 
 		/* Fill the packet */
 		this->serverlist_packet->Send_uint16(count);

@@ -20,7 +20,7 @@ class QueriedServer;
 class SQL {
 protected:
 	/** Same as public MakeServerOnline but ip, port instead of QueriedServer */
-	virtual void MakeServerOnline(const char *ip, uint16 port, uint64 session_key) = 0;
+	virtual void MakeServerOnline(const char *ip, uint16 port, bool ipv6, uint64 session_key) = 0;
 	/** Same as public MakeServerOffline but ip, port instead of QueriedServer */
 	virtual void MakeServerOffline(const char *ip, uint16 port) = 0;
 	/** Same as public UpdateNetworkGameInfo but ip, port instead of QueriedServer */
@@ -68,9 +68,10 @@ public:
 	 * Fills result with up-to length active servers.
 	 * @param result table to place the active servers into
 	 * @param length the length of the result table
+	 * @param ipv6 whether to get IPv6 or IPv4 addresses
 	 * @return the number of active servers added to the list
 	 */
-	virtual uint GetActiveServers(NetworkAddress result[], int length) = 0;
+	virtual uint GetActiveServers(NetworkAddress result[], int length, bool ipv6) = 0;
 
 	/**
 	 * Fills result with up-to length to be requeried servers servers.

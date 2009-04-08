@@ -91,7 +91,7 @@ void MySQL::MD5sumToString(const uint8 md5sum[16], char *dest)
 	dest[32] = '\0';
 }
 
-void MySQL::MakeServerOnline(const char *ip, uint16 port, uint64 session_key)
+void MySQL::MakeServerOnline(const char *ip, uint16 port, bool ipv6, uint64 session_key)
 {
 	char sql[MAX_SQL_LEN];
 
@@ -100,7 +100,7 @@ void MySQL::MakeServerOnline(const char *ip, uint16 port, uint64 session_key)
 	 * Resetting the last_queried here makes the updater update them
 	 * which is pointless. New servers, and old servers that have really
 	 * come online (last_queried = 0000...) are first in the queue. */
-	snprintf(sql, sizeof(sql), "CALL MakeOnline('%d', '%s', '%d', '%lld')", false, ip, port, session_key);
+	snprintf(sql, sizeof(sql), "CALL MakeOnline('%d', '%s', '%d', '%lld')", ipv6, ip, port, session_key);
 	MYSQL_RES *res = MySQLQuery(sql);
 	if (res != NULL) mysql_free_result(res);
 }
@@ -199,12 +199,12 @@ void MySQL::UpdateNetworkGameInfo(const char *ip, uint16 port, const NetworkGame
 	}
 }
 
-uint MySQL::GetActiveServers(NetworkAddress result[], int length)
+uint MySQL::GetActiveServers(NetworkAddress result[], int length, bool ipv6)
 {
 	char sql[MAX_SQL_LEN];
 
 	/* Select the online servers from database */
-	snprintf(sql, sizeof(sql), "SELECT ip, port FROM servers_ips WHERE online='1' GROUP BY server_id LIMIT 0,%d", length);
+	snprintf(sql, sizeof(sql), "SELECT ip, port FROM servers_ips WHERE online='1' AND ipv6='%d' GROUP BY server_id LIMIT 0,%d", ipv6, length);
 	MYSQL_RES *res = MySQLQuery(sql);
 	if (res == NULL) return 0;
 

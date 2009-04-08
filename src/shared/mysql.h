@@ -20,7 +20,7 @@ protected:
 	 */
 	void MD5sumToString(const uint8 md5sum[16], char *dest);
 
-	void MakeServerOnline(const char *ip, uint16 port, uint64 session_key);
+	void MakeServerOnline(const char *ip, uint16 port, bool ipv6, uint64 session_key);
 	void MakeServerOffline(const char *ip, uint16 port);
 	void UpdateNetworkGameInfo(const char *ip, uint16 port, const NetworkGameInfo *info);
 public:
@@ -30,7 +30,7 @@ public:
 	/** Frees all connections to the SQL database */
 	~MySQL();
 
-	uint GetActiveServers(NetworkAddress result[], int length);
+	uint GetActiveServers(NetworkAddress result[], int length, bool ipv6);
 	uint GetRequeryServers(NetworkAddress result[], int length, uint interval);
 	void ResetRequeryIntervals();
 
