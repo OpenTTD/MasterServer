@@ -45,9 +45,11 @@ void MSQueriedServer::DoAttempt(UDPServer *server)
 
 MasterServer::MasterServer(SQL *sql, NetworkAddressList *addresses) : UDPServer(sql)
 {
-	this->serverlist_packet        = NULL;
-	this->update_serverlist_packet = true;
-	this->next_serverlist_frame    = 0;
+	for (uint i = 0; i < SLT_END; i++) {
+		this->serverlist_packet[i]        = NULL;
+		this->update_serverlist_packet[i] = true;
+		this->next_serverlist_frame[i]    = 0;
+	}
 	this->session_key              = time(NULL) << 16;
 	srandom(this->session_key);
 
@@ -67,7 +69,9 @@ MasterServer::MasterServer(SQL *sql, NetworkAddressList *addresses) : UDPServer(
 MasterServer::~MasterServer()
 {
 	delete this->master_socket;
-	delete this->serverlist_packet;
+	for (uint i = 0; i < SLT_END; i++) {
+		delete this->serverlist_packet[i];
+	}
 }
 
 void MasterServer::ReceivePackets()
@@ -87,13 +91,14 @@ uint64 MasterServer::NextSessionKey()
  * be updated/regenerated whenever needed, i.e. when we know a server
  * went online/offline or after a timeout as the updater can change
  * the state of a server too.
+ * @param type the type of addresses to return.
  * @return the serverlist packet
  * @post return != NULL
  */
-Packet *MasterServer::GetServerListPacket()
+Packet *MasterServer::GetServerListPacket(ServerListType type)
 {
 	/* Rebuild the packet only once in a while */
-	if (this->update_serverlist_packet || this->next_serverlist_frame < this->frame) {
+	if (this->update_serverlist_packet[type] || this->next_serverlist_frame[type] < this->frame) {
 		uint16 count;
 
 		/*
@@ -108,28 +113,33 @@ Packet *MasterServer::GetServerListPacket()
 		 * amount of bytes needed to encode the IP address and the port of a
 		 * single server.
 		 */
-		static const uint16 max_count = (sizeof(this->serverlist_packet->buffer) - sizeof(PacketSize) - sizeof(PacketType) - sizeof(count)) / (sizeof(uint32) + sizeof(uint16));
+		static const uint16 max_count[SLT_END] = {
+			(sizeof(this->serverlist_packet[0]->buffer) - sizeof(PacketSize) - sizeof(PacketType) - sizeof(count)) / (sizeof(uint32) + sizeof(uint16)),
+			(sizeof(this->serverlist_packet[1]->buffer) - sizeof(PacketSize) - sizeof(PacketType) - sizeof(count)) / (sizeof(uint32) + 128 / 8 + sizeof(uint16))
+		};
 
-		DEBUG(net, 4, "[server list] rebuilding the server list");
+		DEBUG(net, 4, "[server list] rebuilding the IPv%d server list", 4 + type * 2);
 
-		delete this->serverlist_packet;
-		this->serverlist_packet = NetworkSend_Init(PACKET_UDP_MASTER_RESPONSE_LIST);
-		this->serverlist_packet->Send_uint8(NETWORK_MASTER_SERVER_VERSION);
+		delete this->serverlist_packet[type];
+		this->serverlist_packet[type] = NetworkSend_Init(PACKET_UDP_MASTER_RESPONSE_LIST);
 
-		NetworkAddress servers[max_count];
-		count = this->sql->GetActiveServers(servers, max_count, false);
+		Packet *p = this->serverlist_packet[type];
+		p->Send_uint8(type + 1);
+
+		NetworkAddress servers[max_count[type]];
+		count = this->sql->GetActiveServers(servers, max_count[type], type == SLT_IPv6);
 
 		/* Fill the packet */
-		this->serverlist_packet->Send_uint16(count);
+		p->Send_uint16(count);
 		for (int i = 0; i < count; i++) {
-			this->serverlist_packet->Send_uint32(((sockaddr_in*)servers[i].GetAddress())->sin_addr.s_addr);
-			this->serverlist_packet->Send_uint16(servers[i].GetPort());
+			p->Send_uint32(((sockaddr_in*)servers[i].GetAddress())->sin_addr.s_addr);
+			p->Send_uint16(servers[i].GetPort());
 		}
 
 		/* Schedule the next retry */
-		this->next_serverlist_frame    = this->frame + GAME_SERVER_LIST_AGE;
-		this->update_serverlist_packet = false;
+		this->next_serverlist_frame[type]    = this->frame + GAME_SERVER_LIST_AGE;
+		this->update_serverlist_packet[type] = false;
 	}
 
-	return this->serverlist_packet;
+	return this->serverlist_packet[type];
 }

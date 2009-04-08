@@ -50,10 +50,10 @@ public:
  */
 class MasterServer : public UDPServer {
 private:
-	bool update_serverlist_packet; ///< Whether to update the cached server list packet
-	Packet *serverlist_packet;     ///< The cached server list packet
-	uint next_serverlist_frame;    ///< Frame where to make a new server list packet
-	uint64 session_key;            ///< New session key to give out
+	bool update_serverlist_packet[SLT_END]; ///< Whether to update the cached server list packet
+	Packet *serverlist_packet[SLT_END];     ///< The cached server list packet
+	uint next_serverlist_frame[SLT_END];    ///< Frame where to make a new server list packet
+	uint64 session_key;                     ///< New session key to give out
 
 protected:
 	NetworkUDPSocketHandler *master_socket; ///< Socket to listen for registration, unregistration and queries for the server list
@@ -74,8 +74,14 @@ public:
 
 	MSQueriedServer *GetQueriedServer(NetworkAddress *client_addr) { return (MSQueriedServer*)UDPServer::GetQueriedServer(client_addr); }
 
-	void ServerStateChange() { this->update_serverlist_packet = true; }
-	Packet *GetServerListPacket(); ///< Gets an (relatively) up-to-date packet with all game servers
+	void ServerStateChange()
+	{
+		for (uint i = 0; i < SLT_END; i++) {
+			this->update_serverlist_packet[i] = true;
+		}
+	}
+
+	Packet *GetServerListPacket(ServerListType type); ///< Gets an (relatively) up-to-date packet with all game servers
 
 	/**
 	 * Get the next, semi-random, session key

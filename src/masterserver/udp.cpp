@@ -76,9 +76,7 @@ DEF_UDP_RECEIVE_COMMAND(Master, PACKET_UDP_SERVER_REGISTER)
 	}
 
 	/* Shouldn't happen ofcourse, but still ... */
-	if (this->HasClientQuit()) {
-		return;
-	}
+	if (this->HasClientQuit()) return;
 
 	MSQueriedServer *qs = new MSQueriedServer(query_addr, reply_addr, session_key, this->ms->GetFrame());
 
@@ -105,13 +103,10 @@ DEF_UDP_RECEIVE_COMMAND(Master, PACKET_UDP_SERVER_UNREGISTER)
 
 	DEBUG(net, 3, "received a unregistration request from %s", client_addr->GetAddressAsString());
 
-	QueriedServer *qs = new QueriedServer(*client_addr, this->ms->GetFrame());
-
 	/* Shouldn't happen ofcourse, but still ... */
-	if (this->HasClientQuit()) {
-		delete qs;
-		return;
-	}
+	if (this->HasClientQuit()) return;
+
+	QueriedServer *qs = new QueriedServer(*client_addr, this->ms->GetFrame());
 
 	/* Remove the server from the list of online servers */
 	this->ms->GetSQLBackend()->MakeServerOffline(qs);
@@ -121,7 +116,17 @@ DEF_UDP_RECEIVE_COMMAND(Master, PACKET_UDP_SERVER_UNREGISTER)
 
 DEF_UDP_RECEIVE_COMMAND(Master, PACKET_UDP_CLIENT_GET_LIST)
 {
-	DEBUG(net, 3, "received a request for the game server list from %s", client_addr->GetAddressAsString());
+	uint8 master_server_version = p->Recv_uint8();
+	if (master_server_version < 1 || master_server_version > 2) {
+		/* We do not know this version, bail out */
+		DEBUG(net, 0, "received a request for the game server list from %s with unknown master server version",
+				client_addr->GetAddressAsString());
 
-	this->SendPacket(this->ms->GetServerListPacket(), client_addr);
+		return;
+	}
+
+	DEBUG(net, 3, "received a request for the game server list from %s", client_addr->GetAddressAsString());
+	ServerListType type = SLT_IPv4;
+
+	this->SendPacket(this->ms->GetServerListPacket(type), client_addr);
 }
