@@ -50,7 +50,11 @@ MasterServer::MasterServer(SQL *sql, NetworkAddressList *addresses) : UDPServer(
 		this->update_serverlist_packet[i] = true;
 		this->next_serverlist_frame[i]    = 0;
 	}
-	this->session_key              = time(NULL) << 16;
+	/* The first range of 32+16 bits (IPv4 + port) needs to be free for
+	 * backward compatability. As currently time already is beyond 2^31,
+	 * we only need 17 more 'bits'. The other 3 are to make the session
+	 * keys distinguisable between 'old' and new. */
+	this->session_key              = time(NULL) << 20;
 	srandom(this->session_key);
 
 	this->master_socket = new MasterNetworkUDPSocketHandler(this, addresses);

@@ -88,6 +88,12 @@ public:
 	 * @return the session key
 	 */
 	uint64 NextSessionKey();
+
+	/**
+	 * Get the current session key.
+	 * @return the session key
+	 */
+	uint64 GetSessionKey() { return this->session_key; }
 };
 
 /** Handler for the query socket of the masterserver */

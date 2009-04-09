@@ -68,11 +68,16 @@ DEF_UDP_RECEIVE_COMMAND(Master, PACKET_UDP_SERVER_REGISTER)
 			this->SendPacket(&packet, &reply_addr);
 			return;
 		}
+		if (session_key < (1ULL << (32 + 16 + 1)) || session_key > this->ms->GetSessionKey()) {
+			DEBUG(net, 0, "received an invalid session key from %s", reply_addr.GetAddressAsString());
+			return;
+		}
 	} else if (query_addr.GetAddress()->ss_family != AF_INET) {
 		DEBUG(net, 0, "received non IPv4 registration with version 1 from %s", client_addr->GetHostname());
 		return;
 	} else { // master_server_version == 1
-		session_key = ntohl(((sockaddr_in*)query_addr.GetAddress())->sin_addr.s_addr);
+		/* Paste together the IPv4 address + it's port to generate the session key */
+		session_key = ntohl(((sockaddr_in*)query_addr.GetAddress())->sin_addr.s_addr) | (uint64)query_addr.GetPort() << 32;
 	}
 
 	/* Shouldn't happen ofcourse, but still ... */
