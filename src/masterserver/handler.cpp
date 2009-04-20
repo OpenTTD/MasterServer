@@ -78,6 +78,12 @@ MasterServer::~MasterServer()
 	}
 }
 
+void MasterServer::SendAck(MSQueriedServer *qs)
+{
+	Packet packet(PACKET_UDP_MASTER_ACK_REGISTER);
+	this->master_socket->SendPacket(&packet, qs->GetReplyAddress());
+}
+
 void MasterServer::ReceivePackets()
 {
 	UDPServer::ReceivePackets();

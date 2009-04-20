@@ -23,8 +23,7 @@ DEF_UDP_RECEIVE_COMMAND(Query, PACKET_UDP_SERVER_RESPONSE)
 	DEBUG(net, 9, " ... sending ack to %s", qs->GetReplyAddress()->GetAddressAsString());
 
 	/* Send an okay-signal to the server */
-	Packet packet(PACKET_UDP_MASTER_ACK_REGISTER);
-	this->SendPacket(&packet, qs->GetReplyAddress());
+	this->ms->SendAck(qs);
 
 	/* Add the server to the list with online servers */
 	this->ms->GetSQLBackend()->MakeServerOnline(qs);

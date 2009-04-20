@@ -81,6 +81,12 @@ public:
 		}
 	}
 
+	/**
+	 * Send a registration ack to the server.
+	 * @param qs the server to ack.
+	 */
+	void SendAck(MSQueriedServer *qs);
+
 	Packet *GetServerListPacket(ServerListType type); ///< Gets an (relatively) up-to-date packet with all game servers
 
 	/**
