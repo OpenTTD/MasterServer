@@ -27,7 +27,7 @@ enum StringControlCode {
 static int CDECL vseprintf(char *str, const char *last, const char *format, va_list ap)
 {
 	if (str >= last) return 0;
-	size_t size = last - str;
+	size_t size = last - str + 1;
 	return min((int)size, vsnprintf(str, size, format, ap));
 }
 
