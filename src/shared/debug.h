@@ -64,13 +64,6 @@ void NORETURN error(const char *s, ...);
 void SetDebugString(const char *s);
 const char *GetDebugString(void);
 
-/* MSVCRT of course has to have a different syntax for long long *sigh* */
-#if defined(_MSC_VER) || defined(__MINGW32__)
-	#define OTTD_PRINTF64 "I64"
-#else
-	#define OTTD_PRINTF64 "ll"
-#endif
-
 // Used for profiling
 #define TIC() {\
 	extern uint64 _rdtsc(void);\
@@ -81,7 +74,7 @@ const char *GetDebugString(void);
 #define TOC(str, count)\
 	__sum__ += _rdtsc() - _xxx_;\
 	if (++__i__ == count) {\
-		DEBUG(misc, 0, "[%s] %" OTTD_PRINTF64 "u [avg: %.1f]\n", str, __sum__, __sum__/(double)__i__);\
+		DEBUG(misc, 0, "[%s] " OTTD_PRINTF64 " [avg: %.1f]\n", str, __sum__, __sum__/(double)__i__);\
 		__i__ = 0;\
 		__sum__ = 0;\
 	}\

@@ -221,6 +221,17 @@
 	#define PATHSEPCHAR '/'
 #endif
 
+#define WARN_FORMAT(string, args)
+
+/* MSVCRT of course has to have a different syntax for long long *sigh* */
+#if defined(_MSC_VER) || defined(__MINGW32__)
+	#define OTTD_PRINTF64 "%I64d"
+	#define PRINTF_SIZE "%Iu"
+#else
+	#define OTTD_PRINTF64 "%lld"
+	#define PRINTF_SIZE "%zu"
+#endif
+
 typedef unsigned char byte;
 
 /* This is already defined in unix, but not in QNX Neutrino (6.x)*/
