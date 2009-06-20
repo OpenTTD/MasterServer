@@ -163,6 +163,8 @@ void ServerNetworkContentSocketHandler::SendQueue()
 {
 	assert(this->contentQueue != NULL);
 
+	this->last_activity = GetTime();
+
 	ContentInfo *infos = &this->contentQueue[this->contentQueueIter];
 
 	char file_name[MAX_PATH];

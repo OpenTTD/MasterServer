@@ -9,6 +9,15 @@
  * @file contentserver/handler.cpp Handler of queries to the content server
  */
 
+time_t GetTime()
+{
+	struct timespec ts;
+	int ret = clock_gettime(CLOCK_MONOTONIC, &ts);
+	assert(ret == 0);
+	return ts.tv_sec;
+}
+
+
 ContentServer::ContentServer(SQL *sql, NetworkAddressList &addresses) : Server(sql), first(NULL)
 {
 	for (NetworkAddress *address = addresses.Begin(); address != addresses.End(); address++) {
@@ -78,6 +87,8 @@ void ContentServer::RealRun()
 			}
 		}
 
+		time_t time = GetTime() - IDLE_SOCKET_TIMEOUT;
+
 		/* read stuff from clients/write to them */
 		for (ServerNetworkContentSocketHandler *cs = this->first; cs != NULL;) {
 			if (FD_ISSET(cs->sock, &write_fd)) {
@@ -90,6 +101,9 @@ void ContentServer::RealRun()
 				 * way we prevent internal memory overflows when people start
 				 * bombarding the server with enormous requests. */
 				cs->Recv_Packets();
+			} else if (cs->last_activity < time) {
+				DEBUG(misc, 0, "Killing idle connection");
+				cs->Close();
 			}
 
 			/* Check whether we should delete the socket */
@@ -108,6 +122,8 @@ ServerNetworkContentSocketHandler::ServerNetworkContentSocketHandler(ContentServ
 	cs->first = this;
 
 	this->contentQueue = NULL;
+
+	this->last_activity = GetTime();
 }
 
 ServerNetworkContentSocketHandler::~ServerNetworkContentSocketHandler()

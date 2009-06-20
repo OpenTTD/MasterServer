@@ -187,7 +187,7 @@ endif
 
 $(CONTENTSERVER): rev.o $(OBJS_CONTENTSERVER) $(CONFIG_CACHE_LINKER)
 	$(E) 'Linking $@'
-	$(Q)$(CXX_HOST) $(LDFLAGS) rev.o $(OBJS_CONTENTSERVER) $(LIBS) -o $@
+	$(Q)$(CXX_HOST) $(LDFLAGS) -lrt rev.o $(OBJS_CONTENTSERVER) $(LIBS) -o $@
 ifdef STRIP
 	$(Q)$(STRIP) $@
 endif

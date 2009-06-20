@@ -6,9 +6,21 @@
 #include "shared/server.h"
 #include "shared/network/core/tcp_content.h"
 
+#include <time.h>
+
 /**
  * @file contentserver/contentserver.h Configuration and classes used by the content server
  */
+
+/** Timeout for idle sockets: 2 minutes. */
+static const time_t IDLE_SOCKET_TIMEOUT = 60 * 2;
+
+/**
+ * Gets the monotonic time. The time will never jump back.
+ * @return the time.
+ * @note The following holds: time_t a = GetTime(); time_t b = GetTime(); assert(a <= b);
+ */
+time_t GetTime();
 
 /* Forward declare  */
 class ServerNetworkContentSocketHandler;
@@ -52,6 +64,8 @@ protected:
 	ContentInfo *contentQueue; ///< Queue of content (files) to send to the client
 	uint contentQueueIter;     ///< Iterator over the contentQueue
 	uint contentQueueLength;   ///< Number of items in the contentQueue
+
+	time_t last_activity;      ///< The last time this socket got any activity
 
 	DECLARE_CONTENT_RECEIVE_COMMAND(PACKET_CONTENT_CLIENT_INFO_LIST);
 	DECLARE_CONTENT_RECEIVE_COMMAND(PACKET_CONTENT_CLIENT_INFO_ID);
