@@ -1,9 +1,23 @@
 /* $Id$ */
 
-/** @file stdafx.h */
+/** @file stdafx.h Definition of base types and functions in a cross-platform compatible way. */
 
 #ifndef STDAFX_H
 #define STDAFX_H
+
+#if defined(__APPLE__)
+	#include "os/macosx/osx_stdafx.h"
+#endif /* __APPLE__ */
+
+#if defined(__NDS__)
+	#include <nds/jtypes.h>
+	/* NDS' types for uint32/int32 are based on longs, which causes
+	 * trouble all over the place in OpenTTD. */
+	#define uint32 uint32_ugly_hack
+	#define int32 int32_ugly_hack
+	typedef unsigned int uint32_ugly_hack;
+	typedef signed int int32_ugly_hack;
+#endif /* __NDS__ */
 
 /* It seems that we need to include stdint.h before anything else
  * We need INT64_MAX, which for most systems comes from stdint.h. However, MSVC
@@ -22,8 +36,15 @@
 		#include <stdint.h>
 	#endif
 #else
-	#define INT64_MAX 9223372036854775807LL
-	#define INT64_MIN (-INT64_MAX - 1)
+	#define UINT64_MAX (18446744073709551615ULL)
+	#define INT64_MAX  (9223372036854775807LL)
+	#define INT64_MIN  (-INT64_MAX - 1)
+	#define UINT32_MAX (4294967295U)
+	#define INT32_MAX  (2147483647)
+	#define INT32_MIN  (-INT32_MAX - 1)
+	#define UINT16_MAX (65535U)
+	#define INT16_MAX  (32767)
+	#define INT16_MIN  (-INT16_MAX - 1)
 #endif
 
 #include <cstdio>
@@ -59,7 +80,7 @@
 	#include <SupportDefs.h>
 #endif
 
-#if defined(SUNOS)
+#if defined(SUNOS) || defined(HPUX)
 	#include <alloca.h>
 #endif
 
@@ -87,10 +108,6 @@
 	#define CLIB_USERGROUP_PROTOS_H
 #endif /* __MORPHOS__ */
 
-#if defined(__APPLE__)
-	#include "os/macosx/osx_stdafx.h"
-#endif /* __APPLE__ */
-
 #if defined(PSP)
 	/* PSP can only have 10 file-descriptors open at any given time, but this
 	 *  switch only limits reads via the Fio system. So keep 2 fds free for things
@@ -99,9 +116,6 @@
 	#define printf pspDebugScreenPrintf
 #endif /* PSP */
 
-/* by default we use [] var arrays */
-#define VARARRAY_SIZE
-
 /* Stuff for GCC */
 #if defined(__GNUC__)
 	#define NORETURN __attribute__ ((noreturn))
@@ -109,11 +123,10 @@
 	#define CDECL
 	#define __int64 long long
 	#define GCC_PACK __attribute__((packed))
-
-	#if (__GNUC__ == 2)
-		#undef VARARRAY_SIZE
-		#define VARARRAY_SIZE 0
-	#endif
+	#define UNUSED __attribute__((unused))
+	/* Warn about functions using 'printf' format syntax. First argument determines which parameter
+	 * is the format string, second argument is start of values passed to printf. */
+	#define WARN_FORMAT(string, args) __attribute__ ((format (printf, string, args)))
 #endif /* __GNUC__ */
 
 #if defined(__WATCOMC__)
@@ -121,11 +134,17 @@
 	#define FORCEINLINE inline
 	#define CDECL
 	#define GCC_PACK
+	#define UNUSED
+	#define WARN_FORMAT(string, args)
 	#include <malloc.h>
 #endif /* __WATCOMC__ */
 
 #if defined(__MINGW32__) || defined(__CYGWIN__)
 	#include <malloc.h> // alloca()
+#endif
+
+#if defined(WIN32)
+	#define WIN32_LEAN_AND_MEAN     // Exclude rarely-used stuff from Windows headers
 #endif
 
 /* Stuff for MSVC */
@@ -141,24 +160,22 @@
 	#endif
 	#define _WIN32_IE_ 0x0401         // 4.01 (win98 and NT4SP5+)
 
-	#define WIN32_LEAN_AND_MEAN     // Exclude rarely-used stuff from Windows headers
 	#pragma warning(disable: 4244)  // 'conversion' conversion from 'type1' to 'type2', possible loss of data
 	#pragma warning(disable: 4761)  // integral size mismatch in argument : conversion supplied
 	#pragma warning(disable: 4200)  // nonstandard extension used : zero-sized array in struct/union
 
-	#if (_MSC_VER >= 1400)                   // MSVC 2005 safety checks
-		#pragma warning(disable: 4996)   // 'strdup' was declared deprecated
-		#define _CRT_SECURE_NO_DEPRECATE // all deprecated 'unsafe string functions
-		#pragma warning(disable: 6308)   // code analyzer: 'realloc' might return null pointer: assigning null pointer to 't_ptr', which is passed as an argument to 'realloc', will cause the original memory block to be leaked
-		#pragma warning(disable: 6011)   // code analyzer: Dereferencing NULL pointer 'pfGetAddrInfo': Lines: 995, 996, 998, 999, 1001
-		#pragma warning(disable: 6326)   // code analyzer: potential comparison of a constant with another constant
-		#pragma warning(disable: 6031)   // code analyzer: Return value ignored: 'ReadFile'
-		#pragma warning(disable: 6255)   // code analyzer: _alloca indicates failure by raising a stack overflow exception. Consider using _malloca instead
-		#pragma warning(disable: 6246)   // code analyzer: Local declaration of 'statspec' hides declaration of the same name in outer scope. For additional information, see previous declaration at ...
-	#else /* _MSC_VER >= 1400  ( <1400 for MSVC2003) */
-		#pragma warning(disable: 4288)   // nonstandard extension used : 'y' : loop control variable declared in the for-loop is used outside the for-loop scope; it conflicts with the declaration in the outer scope
-		#pragma warning(disable: 4292)   // compiler limit : terminating debug information emission for enum 'StringIdEnum' with member 'STR_801D_COAL_CAR'
-	#endif /* _MSC_VER >= 1400 */
+	#if (_MSC_VER < 1400)                   // MSVC 2005 safety checks
+		#error "Only MSVC 2005 or higher are supported. MSVC 2003 and earlier are not! Upgrade your compiler."
+	#endif /* (_MSC_VER < 1400) */
+	#pragma warning(disable: 4996)   // 'strdup' was declared deprecated
+	#define _CRT_SECURE_NO_DEPRECATE // all deprecated 'unsafe string functions
+	#pragma warning(disable: 6308)   // code analyzer: 'realloc' might return null pointer: assigning null pointer to 't_ptr', which is passed as an argument to 'realloc', will cause the original memory block to be leaked
+	#pragma warning(disable: 6011)   // code analyzer: Dereferencing NULL pointer 'pfGetAddrInfo': Lines: 995, 996, 998, 999, 1001
+	#pragma warning(disable: 6326)   // code analyzer: potential comparison of a constant with another constant
+	#pragma warning(disable: 6031)   // code analyzer: Return value ignored: 'ReadFile'
+	#pragma warning(disable: 6255)   // code analyzer: _alloca indicates failure by raising a stack overflow exception. Consider using _malloca instead
+	#pragma warning(disable: 6246)   // code analyzer: Local declaration of 'statspec' hides declaration of the same name in outer scope. For additional information, see previous declaration at ...
+	#define WARN_FORMAT(string, args)
 
 	#include <malloc.h> // alloca()
 	#define NORETURN __declspec(noreturn)
@@ -169,8 +186,11 @@
 		#define CDECL _cdecl
 	#endif
 
-	int CDECL snprintf(char *str, size_t size, const char *format, ...);
-	#if (_MSC_VER < 1400) || defined(WINCE)
+	#define GCC_PACK
+	#define UNUSED
+
+	int CDECL snprintf(char *str, size_t size, const char *format, ...) WARN_FORMAT(3, 4);
+	#if defined(WINCE)
 		int CDECL vsnprintf(char *str, size_t size, const char *format, va_list ap);
 	#endif
 
@@ -183,7 +203,9 @@
 		typedef _W64 unsigned int UINT_PTR, *PUINT_PTR;
 	#endif /* WIN32 && !_WIN64 && !WIN64 */
 
-	#define GCC_PACK
+	#if defined(_WIN64) || defined(WIN64)
+		#define fseek _fseeki64
+	#endif /* _WIN64 || WIN64 */
 
 	/* This is needed to zlib uses the stdcall calling convention on visual studio */
 	#if defined(WITH_ZLIB) || defined(WITH_PNG)
@@ -201,12 +223,17 @@
 		#define strncasecmp strnicmp
 	#endif
 
-	void SetExceptionString(const char* s, ...);
+	void SetExceptionString(const char *s, ...) WARN_FORMAT(1, 2);
 
 	#if defined(NDEBUG) && defined(WITH_ASSERT)
 		#undef assert
 		#define assert(expression) if (!(expression)) { SetExceptionString("Assertion failed at %s:%d: %s", __FILE__, __LINE__, #expression); *(byte*)0 = 0; }
 	#endif
+
+	/* MSVC doesn't have these :( */
+	#define S_ISDIR(mode) (mode & S_IFDIR)
+	#define S_ISREG(mode) (mode & S_IFREG)
+
 #endif /* defined(_MSC_VER) */
 
 #if defined(WINCE)
@@ -220,8 +247,6 @@
 	#define PATHSEP "/"
 	#define PATHSEPCHAR '/'
 #endif
-
-#define WARN_FORMAT(string, args)
 
 /* MSVCRT of course has to have a different syntax for long long *sigh* */
 #if defined(_MSC_VER) || defined(__MINGW32__)
@@ -239,7 +264,7 @@ typedef unsigned char byte;
 	typedef unsigned int uint;
 #endif
 
-#if !defined(__BEOS__) /* Already defined on BEOS */
+#if !defined(__BEOS__) && !defined(__NDS__) /* Already defined on BEOS and NDS */
 	typedef unsigned char    uint8;
 	typedef   signed char     int8;
 	typedef unsigned short   uint16;
@@ -248,7 +273,7 @@ typedef unsigned char byte;
 	typedef   signed int      int32;
 	typedef unsigned __int64 uint64;
 	typedef   signed __int64  int64;
-#endif
+#endif /* !__BEOS__ && !__NDS__ */
 
 #if !defined(WITH_PERSONAL_DIR)
 	#define PERSONAL_DIR ""
@@ -258,20 +283,44 @@ typedef unsigned char byte;
 #if defined(__OS2__)
 	#define assert_compile(expr)
 #else
-	#define assert_compile(expr) extern "C" void __ct_assert__(int a[1 - 2 * !(expr)])
+	#define assert_compile(expr) extern const int __ct_assert__[1 - 2 * !(expr)] UNUSED
 #endif /* __OS2__ */
 
+/* Check if the types have the bitsizes like we are using them */
+assert_compile(sizeof(uint64) == 8);
 assert_compile(sizeof(uint32) == 4);
 assert_compile(sizeof(uint16) == 2);
 assert_compile(sizeof(uint8)  == 1);
 
-#define lengthof(x) (sizeof(x)/sizeof(x[0]))
+/**
+ * Return the length of an fixed size array.
+ * Unlike sizeof this function returns the number of elements
+ * of the given type.
+ *
+ * @param x The pointer to the first element of the array
+ * @return The number of elements
+ */
+#define lengthof(x) (sizeof(x) / sizeof(x[0]))
+
+/**
+ * Get the end element of an fixed size array.
+ *
+ * @param x The pointer to the first element of the array
+ * @return The pointer past to the last element of the array
+ */
 #define endof(x) (&x[lengthof(x)])
+
+/**
+ * Get the last element of an fixed size array.
+ *
+ * @param x The pointer to the first element of the array
+ * @return The pointer to the last element of the array
+ */
 #define lastof(x) (&x[lengthof(x) - 1])
 
-#define cpp_offsetof(s,m)   (((size_t)&reinterpret_cast<const volatile char&>((((s*)(char*)8)->m))) - 8)
+#define cpp_offsetof(s, m)   (((size_t)&reinterpret_cast<const volatile char&>((((s*)(char*)8)->m))) - 8)
 #if !defined(offsetof)
-	#define offsetof(s,m) cpp_offsetof(s, m)
+	#define offsetof(s, m) cpp_offsetof(s, m)
 #endif /* offsetof */
 
 
@@ -282,27 +331,22 @@ assert_compile(sizeof(uint8)  == 1);
 	#define CloseConnection OTTD_CloseConnection
 #endif /* __APPLE__ */
 
-#if !defined(STRGEN)
-	/* In strgen error is not fatal and returns */
-	void NORETURN CDECL error(const char *str, ...);
-#else
-	void CDECL error(const char *str, ...);
-#endif
-
+void NORETURN CDECL usererror(const char *str, ...) WARN_FORMAT(1, 2);
+void NORETURN CDECL error(const char *str, ...) WARN_FORMAT(1, 2);
 #define NOT_REACHED() error("NOT_REACHED triggered at line %i of %s", __LINE__, __FILE__)
 
-#if defined(MORPHOS)
-	/* MorphOS doesn't have C++ conformant _stricmp... */
+#if defined(MORPHOS) || defined(__NDS__) || defined(__DJGPP__)
+	/* MorphOS and NDS don't have C++ conformant _stricmp... */
 	#define _stricmp stricmp
 #elif defined(OPENBSD)
 	/* OpenBSD uses strcasecmp(3) */
 	#define _stricmp strcasecmp
 #endif
 
-#if !defined(MORPHOS) && !defined(OPENBSD)
-	/* MorphOS & OpenBSD don't know wchars, the rest does :( */
+#if !defined(MORPHOS) && !defined(OPENBSD) && !defined(__NDS__) && !defined(__DJGPP__)
+	/* NDS, MorphOS & OpenBSD don't know wchars, the rest does :( */
 	#define HAS_WCHAR
-#endif /* !defined(MORPHOS) && !defined(OPENBSD) */
+#endif /* !defined(MORPHOS) && !defined(OPENBSD) && !defined(__NDS__) */
 
 #if !defined(MAX_PATH)
 	#define MAX_PATH 260
