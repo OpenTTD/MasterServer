@@ -188,7 +188,7 @@ void ServerNetworkContentSocketHandler::SendQueue()
 
 		fseek(f, 0, SEEK_SET);
 	} else {
-		DEBUG(misc, 0, "Opening %s failed", file_name);
+		DEBUG(misc, 0, "Opening %s failed (error[%i]: %s)", file_name, errno, strerror(errno));
 	}
 
 	Packet *p = new Packet(PACKET_CONTENT_SERVER_CONTENT);
