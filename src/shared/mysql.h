@@ -40,6 +40,7 @@ public:
 	uint GetActiveServers(NetworkAddress result[], int length, bool ipv6);
 	uint GetRequeryServers(NetworkAddress result[], int length, uint interval);
 	void ResetRequeryIntervals();
+	void RemoveUnadvertised(uint interval);
 
 	void AddGRF(const GRFIdentifier *grf);
 	void SetGRFName(const GRFIdentifier *grf, const char *name);

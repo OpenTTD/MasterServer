@@ -21,12 +21,14 @@
  * Some configuration constants
  */
 enum {
-	UPDATER_QUERY_TIMEOUT           =      5, ///< How many frames it takes for a server to time out
-	UPDATER_QUERY_ATTEMPTS          =      3, ///< How many times do we try to query?
+	UPDATER_QUERY_TIMEOUT              =       5, ///< How many frames it takes for a server to time out
+	UPDATER_QUERY_ATTEMPTS             =       3, ///< How many times do we try to query?
 
-	UPDATER_SERVER_REQUERY_INTERVAL = 5 * 60, ///< How often do we requery servers in seconds
-	UPDATER_REQUERY_INTERVAL        =      5, ///< How often do we check whether to requery servers
-	UPDATER_MAX_REQUERIED_SERVERS   =     32, ///< How many servers do we (maximally) requery in one interval
+	UPDATER_SERVER_REQUERY_INTERVAL    =  5 * 60, ///< How often do we requery servers in seconds
+	UPDATER_SERVER_UNADVERTISE_TIMEOUT = 20 * 60, ///< How long it takes before marking a server not advertising; advertising interval (~15 minutes) + 5 minutes (server clock delays etc)
+	UPDATER_REQUERY_INTERVAL           =       5, ///< How often do we check whether to requery servers
+	UPDATER_UNADVERTISE_INTERVAL       =  1 * 60, ///< How often do we check for unadvertised servers
+	UPDATER_MAX_REQUERIED_SERVERS      =      32, ///< How many servers do we (maximally) requery in one interval
 };
 
 /** List/set of GRFIdentifiers */

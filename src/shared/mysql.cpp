@@ -256,6 +256,20 @@ uint MySQL::GetRequeryServers(NetworkAddress result[], int length, uint interval
 	return count;
 }
 
+void MySQL::RemoveUnadvertised(uint interval)
+{
+	char sql[MAX_SQL_LEN];
+
+	/* Select the online servers from database */
+	snprintf(sql, sizeof(sql), "UPDATE servers_ips SET online='0' WHERE "   \
+						"online='1' AND last_advertised < DATE_SUB(NOW(), INTERVAL %d SECOND)",
+						interval);
+
+	/* We don't really care about the result, just execute it! */
+	MYSQL_RES *res = MySQLQuery(sql);
+	if (res != NULL) mysql_free_result(res);
+}
+
 void MySQL::ResetRequeryIntervals()
 {
 	MYSQL_RES *res = MySQLQuery("UPDATE servers_ips SET last_queried='0000-00-00 00:00:00'");

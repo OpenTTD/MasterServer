@@ -98,6 +98,12 @@ public:
 	 */
 	virtual void ResetRequeryIntervals() = 0;
 
+	/**
+	 * Removes the unadvertised servers, or rather marks them offline.
+	 * @param interval the number of seconds the server must not have been advertised.
+	 */
+	virtual void RemoveUnadvertised(uint interval) = 0;
+
 	/** Key where to search content with */
 	enum ContentKey {
 		CK_ID,           ///< Search based on the ID

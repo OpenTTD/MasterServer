@@ -178,4 +178,7 @@ void Updater::CheckServers()
 		qs->SendFindGameServerPacket(this->GetQuerySocket());
 		this->AddQueriedServer(qs);
 	}
+
+	if (this->GetFrame() % UPDATER_UNADVERTISE_INTERVAL != 0) return;
+	this->sql->RemoveUnadvertised(UPDATER_SERVER_UNADVERTISE_TIMEOUT);
 }
