@@ -140,7 +140,7 @@ Packet *MasterServer::GetServerListPacket(ServerListType type)
 		DEBUG(net, 4, "[server list] rebuilding the IPv%d server list", 4 + type * 2);
 
 		delete this->serverlist_packet[type];
-		this->serverlist_packet[type] = NetworkSend_Init(PACKET_UDP_MASTER_RESPONSE_LIST);
+		this->serverlist_packet[type] = new Packet(PACKET_UDP_MASTER_RESPONSE_LIST);
 
 		Packet *p = this->serverlist_packet[type];
 		p->Send_uint8(type + 1);
