@@ -100,6 +100,8 @@ void ContentServer::RealRun()
 		for (ServerNetworkContentSocketHandler *cs = this->first; cs != NULL;) {
 			if (FD_ISSET(cs->sock, &write_fd)) {
 				cs->writable = true;
+				cs->last_activity = GetTime();
+
 				while (cs->Send_Packets() && cs->IsPacketQueueEmpty() && cs->HasQueue()) {
 					cs->SendQueue();
 				}
