@@ -111,7 +111,7 @@ void ContentServer::RealRun()
 				 * bombarding the server with enormous requests. */
 				cs->Recv_Packets();
 			} else if (cs->last_activity < time) {
-				DEBUG(misc, 0, "Killing idle connection");
+				DEBUG(misc, 1, "Killing idle connection");
 				cs->Close();
 			}
 
