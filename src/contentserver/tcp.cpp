@@ -182,9 +182,10 @@ void ServerNetworkContentSocketHandler::SendQueue()
 			DEBUG(misc, 0, "File size of file (%i) and DB (%i) of %i do not match",
 						ftell(f), infos->filesize, infos->id);
 			fclose(f);
+			f = NULL;
+		} else {
+			fseek(f, 0, SEEK_SET);
 		}
-
-		fseek(f, 0, SEEK_SET);
 	} else {
 		DEBUG(misc, 0, "Opening %s failed (error[%i]: %s)", file_name, errno, strerror(errno));
 	}
