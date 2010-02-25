@@ -102,5 +102,5 @@ DEF_UDP_RECEIVE_COMMAND(Updater, PACKET_UDP_SERVER_NEWGRFS)
 void UpdaterNetworkUDPSocketHandler::HandleIncomingNetworkGameInfoGRFConfig(GRFConfig *config)
 {
 	/* If we do not know it, get the name of it */
-	if (!this->updater->IsGRFKnown(config)) this->current_qs->AddMissingGRF(config);
+	if (!this->updater->IsGRFKnown(&config->ident)) this->current_qs->AddMissingGRF(&config->ident);
 }

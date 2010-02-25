@@ -43,7 +43,8 @@ struct GRFIdentifier {
  * Element in a linked list of GRFConfigs, which is used to store
  * the GRF configuration of a game server.
  */
-struct GRFConfig : public GRFIdentifier {
+struct GRFConfig {
+	GRFIdentifier ident;    ///< grfid and md5sum to uniquely identify newgrfs
 	uint8 flags;            ///< Flags (disabled states etc) of a GRF
 	struct GRFConfig *next; ///< The next GRF in a configuration
 };

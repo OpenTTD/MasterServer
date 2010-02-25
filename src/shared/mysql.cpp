@@ -195,11 +195,11 @@ void MySQL::UpdateNetworkGameInfo(const char *ip, uint16 port, const NetworkGame
 
 	/* Now add the new GRFs */
 	for (GRFConfig *c = info->grfconfig; c != NULL; c = c->next) {
-		char md5sum[sizeof(c->md5sum) * 2 + 1];
-		this->MD5sumToString(c->md5sum, md5sum);
+		char md5sum[sizeof(c->ident.md5sum) * 2 + 1];
+		this->MD5sumToString(c->ident.md5sum, md5sum);
 
 		snprintf(sql, sizeof(sql), "INSERT INTO servers_newgrfs SET server_id='%s', "
-				"grfid='%u', md5sum='%s'", server_id, BSWAP32(c->grfid), md5sum);
+				"grfid='%u', md5sum='%s'", server_id, BSWAP32(c->ident.grfid), md5sum);
 		res = MySQLQuery(sql);
 
 		if (res != NULL) mysql_free_result(res);
