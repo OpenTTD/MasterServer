@@ -454,7 +454,7 @@ void MySQL::IncrementDownloadCount(ContentID id)
 	MYSQL_RES *res = MySQLQuery(sql);
 	if (res != NULL) mysql_free_result(res);
 
-	snprintf(sql, sizeof(sql), "INSERT INTO bananas_download SET file_id = %u, date = NOW()", id);
+	snprintf(sql, sizeof(sql), "INSERT DELAYED INTO bananas_download SET file_id = %u, date = NOW()", id);
 	res = MySQLQuery(sql);
 	if (res != NULL) mysql_free_result(res);
 }
