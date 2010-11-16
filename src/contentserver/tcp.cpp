@@ -205,15 +205,22 @@ void ServerNetworkContentSocketHandler::SendQueue()
 			Packet *p = new Packet(PACKET_CONTENT_SERVER_CONTENT);
 			int res = (int)fread(p->buffer + p->size, 1, SEND_MTU - p->size, f);
 
-			if (res <= 0 || ferror(f)) {
-				DEBUG(misc, 0, "Reading file failed...");
+			if (res < 0 || ferror(f)) {
+				DEBUG(misc, 0, "Reading file %d failed...", infos->id);
 				fclose(f);
 				this->Close();
 				return;
 			}
 
-			p->size += res;
-			this->Send_Packet(p);
+			if (res == 0) {
+				/* If res == 0, then the file is multiple of SEND_MTU - p->size
+				 * bytes big and we didn't try to read beyond the file's end yet.
+				 * So we "only" notice it in the next loop. */
+				delete p;
+			} else {
+				p->size += res;
+				this->Send_Packet(p);
+			}
 
 			if (feof(f)) {
 				this->Send_Packet(new Packet(PACKET_CONTENT_SERVER_CONTENT));
