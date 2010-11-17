@@ -10,15 +10,17 @@
 #ifndef NEWGRF_CONFIG_H
 #define NEWGRF_CONFIG_H
 
-/* GRF config bit flags */
-enum {
-	GCF_DISABLED,
-	GCF_NOT_FOUND,
-	GCF_ACTIVATED,
-	GCF_SYSTEM,
-	GCF_UNSAFE,
-	GCF_STATIC,
-	GCF_COPY,      ///< The data is copied from a grf in _all_grfs
+#include "core/alloc_type.hpp"
+
+/** GRF config bit flags */
+enum GCF_Flags {
+	GCF_SYSTEM,     ///< GRF file is an openttd-internal system grf
+	GCF_UNSAFE,     ///< GRF file is unsafe for static usage
+	GCF_STATIC,     ///< GRF file is used statically (can be used in any MP game)
+	GCF_COMPATIBLE, ///< GRF file does not exactly match the requested GRF (different MD5SUM), but grfid matches)
+	GCF_COPY,       ///< The data is copied from a grf in _all_grfs
+	GCF_INIT_ONLY,  ///< GRF file is processed up to GLS_INIT
+	GCF_RESERVED,   ///< GRF file passed GLS_RESERVE stage
 };
 
 struct GRFIdentifier {
@@ -43,7 +45,7 @@ struct GRFIdentifier {
  * Element in a linked list of GRFConfigs, which is used to store
  * the GRF configuration of a game server.
  */
-struct GRFConfig {
+struct GRFConfig : ZeroedMemoryAllocator {
 	GRFIdentifier ident;    ///< grfid and md5sum to uniquely identify newgrfs
 	uint8 flags;            ///< Flags (disabled states etc) of a GRF
 	struct GRFConfig *next; ///< The next GRF in a configuration
