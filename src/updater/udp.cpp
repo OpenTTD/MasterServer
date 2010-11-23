@@ -50,7 +50,7 @@ DEF_UDP_RECEIVE_COMMAND(Updater, PACKET_UDP_SERVER_RESPONSE)
 
 	for (GRFConfig *c = info.grfconfig; c != NULL;) {
 		GRFConfig *next = c->next;
-		free(c);
+		delete c;
 		c = next;
 	}
 
