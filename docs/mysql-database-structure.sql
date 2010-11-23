@@ -51,8 +51,9 @@ CREATE TABLE `servers` (
   `dedicated` tinyint(1) unsigned default NULL,
   `num_grfs` tinyint(3) NOT NULL default '0',
   PRIMARY KEY  (`id`),
-  UNIQUE KEY `session_key` (`session_key`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+  UNIQUE KEY `session_key` (`session_key`),
+  KEY `revision` (`revision`(10))
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci AUTO_INCREMENT=37881 ;
 
 -- --------------------------------------------------------
 
@@ -66,11 +67,46 @@ CREATE TABLE `servers_ips` (
   `ip` tinytext collate utf8_unicode_ci NOT NULL,
   `port` int(11) NOT NULL default '0',
   `last_queried` datetime NOT NULL default '0000-00-00 00:00:00',
+  `last_advertised` datetime NOT NULL default '0000-00-00 00:00:00',
   `online` tinyint(1) NOT NULL default '0',
   UNIQUE KEY `ip_port` (`ip`(40),`port`),
-  KEY `last_queried` (`last_queried`,`online`)
+  KEY `last_queried` (`last_queried`,`online`),
+  KEY `server_id` (`server_id`),
+  KEY `online` (`online`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
+-- --------------------------------------------------------
+
+--
+-- Stand-in structure for view `servers_list`
+--
+CREATE TABLE `servers_list` (
+`id` int(11)
+,`ips` varchar(341)
+,`last_queried` datetime
+,`online` tinyint(1)
+,`last_online` datetime
+,`created` datetime
+,`info_version` tinyint(3) unsigned
+,`name` tinytext
+,`revision` tinytext
+,`server_lang` tinyint(3) unsigned
+,`use_password` tinyint(1)
+,`clients_max` tinyint(3) unsigned
+,`clients_on` tinyint(3) unsigned
+,`companies_max` tinyint(3) unsigned
+,`companies_on` tinyint(3) unsigned
+,`spectators_max` tinyint(3) unsigned
+,`spectators_on` tinyint(3) unsigned
+,`game_date` tinytext
+,`start_date` tinytext
+,`map_name` tinytext
+,`map_width` smallint(5) unsigned
+,`map_height` smallint(5) unsigned
+,`map_set` tinyint(3) unsigned
+,`dedicated` tinyint(1) unsigned
+,`num_grfs` tinyint(3)
+);
 -- --------------------------------------------------------
 
 --
@@ -120,7 +156,7 @@ BEGIN
 			UPDATE servers SET session_key=p_session_key WHERE id=v_server_id;
 		END IF;
 	END IF;
-	INSERT INTO servers_ips SET server_id=v_server_id, ipv6=p_ipv6, ip=p_ip, port=p_port, last_queried='0000-00-00 00:00:00', online='1' ON DUPLICATE KEY UPDATE online='1', server_id=v_server_id;
+	INSERT INTO servers_ips SET server_id=v_server_id, ipv6=p_ipv6, ip=p_ip, port=p_port, last_queried='0000-00-00 00:00:00', last_advertised=NOW(), online='1' ON DUPLICATE KEY UPDATE online='1', server_id=v_server_id, last_advertised=NOW();
 END$$
 
 --
