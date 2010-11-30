@@ -136,7 +136,7 @@ void ServerNetworkContentSocketHandler::SendInfo(uint32 count, const ContentInfo
 		p->Send_uint8(infos->tag_count);
 		for (uint i = 0; i < infos->tag_count; i++) p->Send_string(infos->tags[i]);
 
-		this->Send_Packet(p);
+		this->SendPacket(p);
 	}
 }
 
@@ -197,7 +197,7 @@ void ServerNetworkContentSocketHandler::SendQueue()
 	p->Send_uint32(f == NULL ? 0 : infos->filesize);
 	p->Send_string(infos->filename);
 
-	this->Send_Packet(p);
+	this->SendPacket(p);
 	this->cs->GetSQLBackend()->IncrementDownloadCount(infos->id);
 
 	if (f != NULL) {
@@ -219,16 +219,16 @@ void ServerNetworkContentSocketHandler::SendQueue()
 				delete p;
 			} else {
 				p->size += res;
-				this->Send_Packet(p);
+				this->SendPacket(p);
 			}
 
 			if (feof(f)) {
-				this->Send_Packet(new Packet(PACKET_CONTENT_SERVER_CONTENT));
+				this->SendPacket(new Packet(PACKET_CONTENT_SERVER_CONTENT));
 				fclose(f);
 				break;
 			}
 		}
-		this->Send_Packets();
+		this->SendPackets();
 	}
 
 	this->contentQueueIter++;

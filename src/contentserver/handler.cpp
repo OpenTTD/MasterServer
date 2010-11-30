@@ -102,14 +102,14 @@ void ContentServer::RealRun()
 				cs->writable = true;
 				cs->last_activity = GetTime();
 
-				while (cs->Send_Packets() && cs->IsPacketQueueEmpty() && cs->HasQueue()) {
+				while (cs->SendPackets() && cs->IsPacketQueueEmpty() && cs->HasQueue()) {
 					cs->SendQueue();
 				}
 			} else if (FD_ISSET(cs->sock, &read_fd)) {
 				/* Only receive packets when our outgoing packet queue is empty. This
 				 * way we prevent internal memory overflows when people start
 				 * bombarding the server with enormous requests. */
-				cs->Recv_Packets();
+				cs->ReceivePackets();
 			} else if (cs->last_activity < time) {
 				DEBUG(misc, 1, "Killing idle connection");
 				cs->Close();

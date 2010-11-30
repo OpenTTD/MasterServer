@@ -35,7 +35,7 @@ DEF_UDP_RECEIVE_COMMAND(Updater, PACKET_UDP_SERVER_RESPONSE)
 	memset(&info, 0, sizeof(info));
 
 	this->current_qs = qs;
-	this->Recv_NetworkGameInfo(p, &info);
+	this->ReceiveNetworkGameInfo(p, &info);
 	this->current_qs = NULL;
 
 	/* Shouldn't happen ofcourse, but still ... */
@@ -82,7 +82,7 @@ DEF_UDP_RECEIVE_COMMAND(Updater, PACKET_UDP_SERVER_NEWGRFS)
 		char name[NETWORK_GRF_NAME_LENGTH];
 		GRFIdentifier grf;
 
-		this->Recv_GRFIdentifier(p, &grf);
+		this->ReceiveGRFIdentifier(p, &grf);
 		p->Recv_string(name, sizeof(name));
 
 		/* An empty name is not possible under normal circumstances

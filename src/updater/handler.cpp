@@ -76,7 +76,7 @@ void UpdaterQueriedServer::RequestGRFs(NetworkUDPSocketHandler *socket)
 
 	GRFList::iterator iter = this->missing_grfs.begin();
 	for (; iter != this->missing_grfs.end(); iter++) {
-		socket->Send_GRFIdentifier(&packet, *iter);
+		socket->SendGRFIdentifier(&packet, *iter);
 	}
 
 	socket->SendPacket(&packet, &this->server_address);
