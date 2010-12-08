@@ -133,8 +133,8 @@ Packet *MasterServer::GetServerListPacket(ServerListType type)
 		 * For IPv6 addresses we send an in6_addr and for IPv4 address an in_addr.
 		 */
 		static const uint16 max_count[SLT_END] = {
-			(sizeof(this->serverlist_packet[0]->buffer) - sizeof(PacketSize) - sizeof(PacketType) - sizeof(count)) / (sizeof(in_addr) + sizeof(uint16)),
-			(sizeof(this->serverlist_packet[1]->buffer) - sizeof(PacketSize) - sizeof(PacketType) - sizeof(count)) / (sizeof(in6_addr) + sizeof(uint16))
+			(SEND_MTU - sizeof(PacketSize) - sizeof(PacketType) - sizeof(count)) / (sizeof(in_addr) + sizeof(uint16)),
+			(SEND_MTU - sizeof(PacketSize) - sizeof(PacketType) - sizeof(count)) / (sizeof(in6_addr) + sizeof(uint16))
 		};
 
 		DEBUG(net, 4, "[server list] rebuilding the IPv%d server list", 4 + type * 2);
