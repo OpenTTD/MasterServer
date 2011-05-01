@@ -113,7 +113,7 @@ public:
 class QueryNetworkUDPSocketHandler : public NetworkUDPSocketHandler {
 protected:
 	MasterServer *ms; ///< The masterserver we are related to
-	DECLARE_UDP_RECEIVE_COMMAND(PACKET_UDP_SERVER_RESPONSE); ///< Handle a PACKET_UDP_SERVER_RESPONSE packet
+	virtual void Receive_SERVER_RESPONSE(Packet *p, NetworkAddress *client_addr); ///< Handle a PACKET_UDP_SERVER_RESPONSE packet
 public:
 	/**
 	 * Create a new query socket handler for a given masterserver
@@ -133,9 +133,9 @@ public:
 class MasterNetworkUDPSocketHandler : public NetworkUDPSocketHandler {
 protected:
 	MasterServer *ms; ///< The masterserver we are related to
-	DECLARE_UDP_RECEIVE_COMMAND(PACKET_UDP_SERVER_REGISTER);   ///< Handle a PACKET_UDP_SERVER_REGISTER packet
-	DECLARE_UDP_RECEIVE_COMMAND(PACKET_UDP_CLIENT_GET_LIST);   ///< Handle a PACKET_UDP_CLIENT_GET_LIST packet
-	DECLARE_UDP_RECEIVE_COMMAND(PACKET_UDP_SERVER_UNREGISTER); ///< Handle a PACKET_UDP_SERVER_UNREGISTER packet
+	virtual void Receive_SERVER_REGISTER(Packet *p, NetworkAddress *client_addr);   ///< Handle a PACKET_UDP_SERVER_REGISTER packet
+	virtual void Receive_CLIENT_GET_LIST(Packet *p, NetworkAddress *client_addr);   ///< Handle a PACKET_UDP_CLIENT_GET_LIST packet
+	virtual void Receive_SERVER_UNREGISTER(Packet *p, NetworkAddress *client_addr); ///< Handle a PACKET_UDP_SERVER_UNREGISTER packet
 public:
 	/**
 	 * Create a new masterserver socket handler for a given masterserver

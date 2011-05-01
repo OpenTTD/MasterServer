@@ -74,11 +74,11 @@ protected:
 
 	time_t last_activity;      ///< The last time this socket got any activity
 
-	DECLARE_CONTENT_RECEIVE_COMMAND(PACKET_CONTENT_CLIENT_INFO_LIST);
-	DECLARE_CONTENT_RECEIVE_COMMAND(PACKET_CONTENT_CLIENT_INFO_ID);
-	DECLARE_CONTENT_RECEIVE_COMMAND(PACKET_CONTENT_CLIENT_INFO_EXTID);
-	DECLARE_CONTENT_RECEIVE_COMMAND(PACKET_CONTENT_CLIENT_INFO_EXTID_MD5);
-	DECLARE_CONTENT_RECEIVE_COMMAND(PACKET_CONTENT_CLIENT_CONTENT);
+	virtual bool Receive_CLIENT_INFO_LIST(Packet *p);
+	virtual bool Receive_CLIENT_INFO_ID(Packet *p);
+	virtual bool Receive_CLIENT_INFO_EXTID(Packet *p);
+	virtual bool Receive_CLIENT_INFO_EXTID_MD5(Packet *p);
+	virtual bool Receive_CLIENT_CONTENT(Packet *p);
 
 	/**
 	 * Send a number of info "structs" over the network.

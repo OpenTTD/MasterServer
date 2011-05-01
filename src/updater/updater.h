@@ -134,8 +134,8 @@ class UpdaterNetworkUDPSocketHandler : public NetworkUDPSocketHandler {
 protected:
 	UpdaterQueriedServer *current_qs; ///< The query server currently receiving data for
 	Updater *updater;                 ///< The updater associated with this socket
-	DECLARE_UDP_RECEIVE_COMMAND(PACKET_UDP_SERVER_RESPONSE); ///< Handle a PACKET_UDP_SERVER_RESPONSE packet
-	DECLARE_UDP_RECEIVE_COMMAND(PACKET_UDP_SERVER_NEWGRFS); ///< Handle a PACKET_UDP_SERVER_NEWGRFS packet
+	virtual void Receive_SERVER_RESPONSE(Packet *p, NetworkAddress *client_addr); ///< Handle a PACKET_UDP_SERVER_RESPONSE packet
+	virtual void Receive_SERVER_NEWGRFS(Packet *p, NetworkAddress *client_addr); ///< Handle a PACKET_UDP_SERVER_NEWGRFS packet
 
 	/**
 	 * Callback function use to check existance and such of a GRF

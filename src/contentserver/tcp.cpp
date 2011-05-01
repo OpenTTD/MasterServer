@@ -17,7 +17,7 @@
  * @file contentserver/tcp.cpp Handler of incoming TCP content server packets
  */
 
-DEF_CONTENT_RECEIVE_COMMAND(Server, PACKET_CONTENT_CLIENT_INFO_LIST)
+bool ServerNetworkContentSocketHandler::Receive_CLIENT_INFO_LIST(Packet *p)
 {
 	ContentType type    = (ContentType)p->Recv_uint8();
 	uint32 ottd_version = p->Recv_uint32();
@@ -32,7 +32,7 @@ DEF_CONTENT_RECEIVE_COMMAND(Server, PACKET_CONTENT_CLIENT_INFO_LIST)
 	return true;
 }
 
-DEF_CONTENT_RECEIVE_COMMAND(Server, PACKET_CONTENT_CLIENT_INFO_ID)
+bool ServerNetworkContentSocketHandler::Receive_CLIENT_INFO_ID(Packet *p)
 {
 	uint16 count = p->Recv_uint16();
 	ContentInfo *ci = new ContentInfo[count];
@@ -51,7 +51,7 @@ DEF_CONTENT_RECEIVE_COMMAND(Server, PACKET_CONTENT_CLIENT_INFO_ID)
 	return true;
 }
 
-DEF_CONTENT_RECEIVE_COMMAND(Server, PACKET_CONTENT_CLIENT_INFO_EXTID)
+bool ServerNetworkContentSocketHandler::Receive_CLIENT_INFO_EXTID(Packet *p)
 {
 	uint8 count = p->Recv_uint8();
 
@@ -78,7 +78,7 @@ DEF_CONTENT_RECEIVE_COMMAND(Server, PACKET_CONTENT_CLIENT_INFO_EXTID)
 	return true;
 }
 
-DEF_CONTENT_RECEIVE_COMMAND(Server, PACKET_CONTENT_CLIENT_INFO_EXTID_MD5)
+bool ServerNetworkContentSocketHandler::Receive_CLIENT_INFO_EXTID_MD5(Packet *p)
 {
 	uint8 count = p->Recv_uint8();
 
@@ -140,7 +140,7 @@ void ServerNetworkContentSocketHandler::SendInfo(uint32 count, const ContentInfo
 	}
 }
 
-DEF_CONTENT_RECEIVE_COMMAND(Server, PACKET_CONTENT_CLIENT_CONTENT)
+bool ServerNetworkContentSocketHandler::Receive_CLIENT_CONTENT(Packet *p)
 {
 	uint16 count = p->Recv_uint16();
 	ContentInfo *ci = new ContentInfo[count];

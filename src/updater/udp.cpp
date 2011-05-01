@@ -16,7 +16,7 @@
  * @file updater/udp.cpp Handler of incoming UDP packets for the updater
  */
 
-DEF_UDP_RECEIVE_COMMAND(Updater, PACKET_UDP_SERVER_RESPONSE)
+void UpdaterNetworkUDPSocketHandler::Receive_SERVER_RESPONSE(Packet *p, NetworkAddress *client_addr)
 {
 	UpdaterQueriedServer *qs = this->updater->GetQueriedServer(client_addr);
 
@@ -62,7 +62,7 @@ DEF_UDP_RECEIVE_COMMAND(Updater, PACKET_UDP_SERVER_RESPONSE)
 	}
 }
 
-DEF_UDP_RECEIVE_COMMAND(Updater, PACKET_UDP_SERVER_NEWGRFS)
+void UpdaterNetworkUDPSocketHandler::Receive_SERVER_NEWGRFS(Packet *p, NetworkAddress *client_addr)
 {
 	UpdaterQueriedServer *qs = this->updater->GetQueriedServer(client_addr);
 

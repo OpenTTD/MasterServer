@@ -66,11 +66,8 @@ void ContentServer::RealRun()
 		FD_ZERO(&write_fd);
 
 		for (ServerNetworkContentSocketHandler *cs = this->first; cs != NULL; cs = cs->next) {
-			if (!cs->IsPacketQueueEmpty() || cs->HasQueue()) {
-				FD_SET(cs->sock, &write_fd);
-			} else {
-				FD_SET(cs->sock, &read_fd);
-			}
+			FD_SET(cs->sock, &write_fd);
+			FD_SET(cs->sock, &read_fd);
 		}
 
 		/* take care of listener port */
@@ -98,14 +95,17 @@ void ContentServer::RealRun()
 
 		/* read stuff from clients/write to them */
 		for (ServerNetworkContentSocketHandler *cs = this->first; cs != NULL;) {
+			SendPacketsState sps = SPS_ALL_SENT;
 			if (FD_ISSET(cs->sock, &write_fd)) {
 				cs->writable = true;
-				cs->last_activity = GetTime();
 
-				while (cs->SendPackets() && cs->IsPacketQueueEmpty() && cs->HasQueue()) {
+				while ((sps = cs->SendPackets()) == SPS_ALL_SENT && cs->HasQueue()) {
+					cs->last_activity = GetTime();
 					cs->SendQueue();
 				}
-			} else if (FD_ISSET(cs->sock, &read_fd)) {
+			}
+
+			if (sps == SPS_ALL_SENT && FD_ISSET(cs->sock, &read_fd)) {
 				/* Only receive packets when our outgoing packet queue is empty. This
 				 * way we prevent internal memory overflows when people start
 				 * bombarding the server with enormous requests. */

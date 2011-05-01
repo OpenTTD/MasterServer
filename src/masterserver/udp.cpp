@@ -16,7 +16,7 @@
  * @file masterserver/udp.cpp Handler of incoming UDP master server packets
  */
 
-DEF_UDP_RECEIVE_COMMAND(Query, PACKET_UDP_SERVER_RESPONSE)
+void QueryNetworkUDPSocketHandler::Receive_SERVER_RESPONSE(Packet *p, NetworkAddress *client_addr)
 {
 	MSQueriedServer *qs = this->ms->GetQueriedServer(client_addr);
 
@@ -37,7 +37,7 @@ DEF_UDP_RECEIVE_COMMAND(Query, PACKET_UDP_SERVER_RESPONSE)
 	delete this->ms->RemoveQueriedServer(qs);
 }
 
-DEF_UDP_RECEIVE_COMMAND(Master, PACKET_UDP_SERVER_REGISTER)
+void MasterNetworkUDPSocketHandler::Receive_SERVER_REGISTER(Packet *p, NetworkAddress *client_addr)
 {
 	char welcome_message[NETWORK_NAME_LENGTH];
 
@@ -98,7 +98,7 @@ DEF_UDP_RECEIVE_COMMAND(Master, PACKET_UDP_SERVER_REGISTER)
 	delete this->ms->AddQueriedServer(qs);
 }
 
-DEF_UDP_RECEIVE_COMMAND(Master, PACKET_UDP_SERVER_UNREGISTER)
+void MasterNetworkUDPSocketHandler::Receive_SERVER_UNREGISTER(Packet *p, NetworkAddress *client_addr)
 {
 	/* See what kind of server we have (protocol wise) */
 	uint8 master_server_version = p->Recv_uint8();
@@ -125,7 +125,7 @@ DEF_UDP_RECEIVE_COMMAND(Master, PACKET_UDP_SERVER_UNREGISTER)
 	delete qs;
 }
 
-DEF_UDP_RECEIVE_COMMAND(Master, PACKET_UDP_CLIENT_GET_LIST)
+void MasterNetworkUDPSocketHandler::Receive_CLIENT_GET_LIST(Packet *p, NetworkAddress *client_addr)
 {
 	uint8 master_server_version = p->Recv_uint8();
 	if (master_server_version < 1 || master_server_version > 2) {
