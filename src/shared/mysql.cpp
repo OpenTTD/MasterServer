@@ -64,6 +64,10 @@ MySQL::MySQL(const char *host, const char *user, const char *passwd, const char 
 		error("Cannot enable MySQL reconnection: %s", mysql_error(_mysql));
 	}
 
+	if (mysql_set_character_set(_mysql, "utf8")) {
+		error("Cannot change character set to utf8: %s", mysql_error(_mysql));
+	}
+
 	DEBUG(sql, 1, "Connected to MySQL");
 }
 
