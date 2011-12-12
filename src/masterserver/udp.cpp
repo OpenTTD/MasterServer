@@ -143,5 +143,10 @@ void MasterNetworkUDPSocketHandler::Receive_CLIENT_GET_LIST(Packet *p, NetworkAd
 		if (type >= SLT_AUTODETECT) type = client_addr->IsFamily(AF_INET) ? SLT_IPv4 : SLT_IPv6;
 	}
 
-	this->SendPacket(this->ms->GetServerListPacket(type), client_addr);
+	for (Packet *p = this->ms->GetServerListPacket(type); p != NULL; p = p->next) {
+		Packet *next = p->next;
+		p->next = NULL;
+		this->SendPacket(p, client_addr);
+		p->next = next;
+	}
 }

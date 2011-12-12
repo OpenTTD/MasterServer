@@ -104,6 +104,32 @@ uint64 MasterServer::NextSessionKey()
 }
 
 /**
+ * Helper to create a packet with addresses.
+ * @param servers The server addresses to send.
+ * @param count   The amount of servers to send.
+ * @param type    The type of address to send.
+ * @return The just created packet with addresses.
+ */
+Packet *CreateAddressPacket(NetworkAddress *servers, int count, ServerListType type)
+{
+	Packet *p = new Packet(PACKET_UDP_MASTER_RESPONSE_LIST);
+	p->Send_uint8(type + 1);
+	/* Fill the packet */
+	p->Send_uint16(count);
+	for (int i = 0; i < count; i++) {
+		if (type == SLT_IPv6) {
+			byte *addr = (byte*)&((sockaddr_in6*)servers[i].GetAddress())->sin6_addr;
+			for (uint i = 0; i < sizeof(in6_addr); i++) p->Send_uint8(*addr++);
+		} else {
+			p->Send_uint32(((sockaddr_in*)servers[i].GetAddress())->sin_addr.s_addr);
+		}
+		p->Send_uint16(servers[i].GetPort());
+	}
+
+	return p;
+}
+
+/**
  * Returns the packets with the game server list. This packet will
  * be updated/regenerated whenever needed, i.e. when we know a server
  * went online/offline or after a timeout as the updater can change
@@ -116,7 +142,9 @@ Packet *MasterServer::GetServerListPacket(ServerListType type)
 {
 	/* Rebuild the packet only once in a while */
 	if (this->update_serverlist_packet[type] || this->next_serverlist_frame[type] < this->frame) {
-		uint16 count;
+		DEBUG(net, 4, "[server list] rebuilding the IPv%d server list", 4 + type * 2);
+		NetworkAddress servers[1024];
+		uint16 count = this->sql->GetActiveServers(servers, lengthof(servers), type == SLT_IPv6);
 
 		/*
 		 * Due to the limited size of the packet, and the fact that we only send
@@ -133,32 +161,28 @@ Packet *MasterServer::GetServerListPacket(ServerListType type)
 		 * For IPv6 addresses we send an in6_addr and for IPv4 address an in_addr.
 		 */
 		static const uint16 max_count[SLT_END] = {
-			(SEND_MTU - sizeof(PacketSize) - sizeof(PacketType) - sizeof(count)) / (sizeof(in_addr) + sizeof(uint16)),
-			(SEND_MTU - sizeof(PacketSize) - sizeof(PacketType) - sizeof(count)) / (sizeof(in6_addr) + sizeof(uint16))
+			(SAFE_MTU - sizeof(PacketSize) - sizeof(PacketType) - sizeof(count)) / (sizeof(in_addr) + sizeof(uint16)),
+			(SAFE_MTU - sizeof(PacketSize) - sizeof(PacketType) - sizeof(count)) / (sizeof(in6_addr) + sizeof(uint16))
 		};
 
-		DEBUG(net, 4, "[server list] rebuilding the IPv%d server list", 4 + type * 2);
-
-		delete this->serverlist_packet[type];
-		this->serverlist_packet[type] = new Packet(PACKET_UDP_MASTER_RESPONSE_LIST);
-
 		Packet *p = this->serverlist_packet[type];
-		p->Send_uint8(type + 1);
-
-		NetworkAddress servers[max_count[type]];
-		count = this->sql->GetActiveServers(servers, max_count[type], type == SLT_IPv6);
-
-		/* Fill the packet */
-		p->Send_uint16(count);
-		for (int i = 0; i < count; i++) {
-			if (type == SLT_IPv6) {
-				byte *addr = (byte*)&((sockaddr_in6*)servers[i].GetAddress())->sin6_addr;
-				for (uint i = 0; i < sizeof(in6_addr); i++) p->Send_uint8(*addr++);
-			} else {
-				p->Send_uint32(((sockaddr_in*)servers[i].GetAddress())->sin_addr.s_addr);
-			}
-			p->Send_uint16(servers[i].GetPort());
+		while (p != NULL) {
+			Packet *cur = p;
+			p = p->next;
+			delete cur;
 		}
+		this->serverlist_packet[type] = NULL;
+
+		NetworkAddress *cur_servers = servers;
+		do {
+			uint cur_count = min(count, max_count[type]);
+			Packet *p = CreateAddressPacket(cur_servers, cur_count, type);
+			count -= cur_count;
+			cur_servers += cur_count;
+
+			p->next = this->serverlist_packet[type];
+			this->serverlist_packet[type] = p;
+		} while (count > 0);
 
 		/* Schedule the next retry */
 		this->next_serverlist_frame[type]    = this->frame + GAME_SERVER_LIST_AGE;

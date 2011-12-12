@@ -24,6 +24,8 @@ enum {
 
 	SERVER_QUERY_TIMEOUT  =  5, ///< How many frames it takes for a server to time out
 	SERVER_QUERY_ATTEMPTS =  3, ///< How many times do we try to query?
+
+	SAFE_MTU = 1360, ///< Safe threshold for MTUs, some networks don't like big ones.
 };
 
 class MSQueriedServer : public QueriedServer {
