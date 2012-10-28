@@ -131,6 +131,7 @@ ServerNetworkContentSocketHandler::ServerNetworkContentSocketHandler(ContentServ
 	cs->first = this;
 
 	this->contentQueue = NULL;
+	this->contentFile = NULL;
 
 	this->last_activity = GetTime();
 }
@@ -144,6 +145,9 @@ ServerNetworkContentSocketHandler::~ServerNetworkContentSocketHandler()
 	}
 
 	*prev = this->next;
+
+	if (this->contentFile != NULL) fclose(this->contentFile);
+	this->contentFile = NULL;
 
 	delete [] this->contentQueue;
 }

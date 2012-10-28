@@ -69,6 +69,8 @@ protected:
 	ServerNetworkContentSocketHandler *next; ///< Linked list of socket handlers
 
 	ContentInfo *contentQueue; ///< Queue of content (files) to send to the client
+	FILE *contentFile;         ///< The currently read file
+	uint contentFileId;        ///< The Id of the currently read file
 	uint contentQueueIter;     ///< Iterator over the contentQueue
 	uint contentQueueLength;   ///< Number of items in the contentQueue
 

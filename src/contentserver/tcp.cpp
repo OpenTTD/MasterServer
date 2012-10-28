@@ -170,44 +170,50 @@ void ServerNetworkContentSocketHandler::SendQueue()
 {
 	assert(this->contentQueue != NULL);
 
-	ContentInfo *infos = &this->contentQueue[this->contentQueueIter];
+	if (this->contentFile != NULL) {
+		ContentInfo *infos = &this->contentQueue[this->contentQueueIter];
 
-	char file_name[MAX_PATH];
-	snprintf(file_name, lengthof(file_name), CONTENT_DATA_PATH, infos->id / 100, infos->id);
-	FILE *f = fopen(file_name, "rb");
-	if (f != NULL) {
-		fseek(f, 0, SEEK_END);
+		char file_name[MAX_PATH];
+		snprintf(file_name, lengthof(file_name), CONTENT_DATA_PATH, infos->id / 100, infos->id);
+		this->contentFile = fopen(file_name, "rb");
+		if (this->contentFile != NULL) {
+			fseek(this->contentFile, 0, SEEK_END);
 
-		if (ftell(f) != (long)infos->filesize) {
-			DEBUG(misc, 0, "File size of file (%i) and DB (%i) of %i do not match",
-						ftell(f), infos->filesize, infos->id);
-			fclose(f);
-			f = NULL;
+			if (ftell(this->contentFile) != (long)infos->filesize) {
+				DEBUG(misc, 0, "File size of file (%i) and DB (%i) of %i do not match",
+							ftell(this->contentFile), infos->filesize, infos->id);
+				fclose(this->contentFile);
+				this->contentFile = NULL;
+			} else {
+				fseek(this->contentFile, 0, SEEK_SET);
+			}
 		} else {
-			fseek(f, 0, SEEK_SET);
+			DEBUG(misc, 0, "Opening %s failed (error[%i]: %s)", file_name, errno, strerror(errno));
 		}
-	} else {
-		DEBUG(misc, 0, "Opening %s failed (error[%i]: %s)", file_name, errno, strerror(errno));
+
+		Packet *p = new Packet(PACKET_CONTENT_SERVER_CONTENT);
+
+		p->Send_uint8((byte)infos->type);
+		p->Send_uint32(infos->id);
+		p->Send_uint32(this->contentFile == NULL ? 0 : infos->filesize);
+		p->Send_string(infos->filename);
+
+		this->SendPacket(p);
+		this->cs->GetSQLBackend()->IncrementDownloadCount(infos->id);
+
+		this->contentFileId = infos->id;
 	}
 
-	Packet *p = new Packet(PACKET_CONTENT_SERVER_CONTENT);
-
-	p->Send_uint8((byte)infos->type);
-	p->Send_uint32(infos->id);
-	p->Send_uint32(f == NULL ? 0 : infos->filesize);
-	p->Send_string(infos->filename);
-
-	this->SendPacket(p);
-	this->cs->GetSQLBackend()->IncrementDownloadCount(infos->id);
-
-	if (f != NULL) {
-		for (;;) {
+	if (this->contentFile != NULL) {
+		/* Read the file in slices of roughly 100.000 bytes. */
+		for (uint i = 0; i < (100 * 1000 / SEND_MTU); i++) {
 			Packet *p = new Packet(PACKET_CONTENT_SERVER_CONTENT);
-			int res = (int)fread(p->buffer + p->size, 1, SEND_MTU - p->size, f);
+			int res = (int)fread(p->buffer + p->size, 1, SEND_MTU - p->size, this->contentFile);
 
-			if (res < 0 || ferror(f)) {
-				DEBUG(misc, 0, "Reading file %d failed...", infos->id);
-				fclose(f);
+			if (res < 0 || ferror(this->contentFile)) {
+				DEBUG(misc, 0, "Reading file %d failed...", this->contentFileId);
+				fclose(this->contentFile);
+				this->contentFile = NULL;
 				this->Close();
 				return;
 			}
@@ -222,20 +228,23 @@ void ServerNetworkContentSocketHandler::SendQueue()
 				this->SendPacket(p);
 			}
 
-			if (feof(f)) {
+			if (feof(this->contentFile)) {
 				this->SendPacket(new Packet(PACKET_CONTENT_SERVER_CONTENT));
-				fclose(f);
+				fclose(this->contentFile);
+				this->contentFile = NULL;
 				break;
 			}
 		}
 		this->SendPackets();
 	}
 
-	this->contentQueueIter++;
+	if (this->contentFile == NULL) {
+		this->contentQueueIter++;
 
-	if (this->contentQueueIter == this->contentQueueLength) {
-		delete [] this->contentQueue;
-		this->contentQueue = NULL;
+		if (this->contentQueueIter == this->contentQueueLength) {
+			delete [] this->contentQueue;
+			this->contentQueue = NULL;
+		}
 	}
 }
 
