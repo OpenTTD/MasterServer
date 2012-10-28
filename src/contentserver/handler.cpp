@@ -66,7 +66,7 @@ void ContentServer::RealRun()
 		FD_ZERO(&write_fd);
 
 		for (ServerNetworkContentSocketHandler *cs = this->first; cs != NULL; cs = cs->next) {
-			FD_SET(cs->sock, &write_fd);
+			if (cs->HasQueue() || cs->HasSendQueue()) FD_SET(cs->sock, &write_fd);
 			FD_SET(cs->sock, &read_fd);
 		}
 
