@@ -170,7 +170,7 @@ void ServerNetworkContentSocketHandler::SendQueue()
 {
 	assert(this->contentQueue != NULL);
 
-	if (this->contentFile != NULL) {
+	if (this->contentFile == NULL) {
 		ContentInfo *infos = &this->contentQueue[this->contentQueueIter];
 
 		char file_name[MAX_PATH];
