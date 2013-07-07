@@ -95,7 +95,7 @@ void ContentServer::RealRun()
 
 		/* read stuff from clients/write to them */
 		for (ServerNetworkContentSocketHandler *cs = this->first; cs != NULL;) {
-			SendPacketsState sps = SPS_ALL_SENT;
+			SendPacketsState sps = cs->HasQueue() ? SPS_NONE_SENT : SPS_ALL_SENT;
 			if (FD_ISSET(cs->sock, &write_fd)) {
 				cs->writable = true;
 
