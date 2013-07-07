@@ -431,7 +431,8 @@ uint MySQL::FindContentDetails(ContentInfo info[], int length, ContentType type,
 	snprintf(sql, sizeof(sql), "SELECT id FROM bananas_file " \
 			"WHERE active = 1 AND published = 1 AND type_id = %i AND " \
 			"minimalVersion <= %i AND " \
-			"(maximalVersion = -1 OR maximalVersion >= %i) LIMIT 0,%d",
+			"(maximalVersion = -1 OR maximalVersion >= %i)" \
+			"ORDER BY uniqueid DESC LIMIT 0,%d",
 			(int)type, version, version, length);
 
 	MYSQL_RES *res = MySQLQuery(sql);
