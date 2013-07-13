@@ -100,9 +100,9 @@ void ContentServer::RealRun()
 				cs->writable = true;
 
 				while ((sps = cs->SendPackets()) == SPS_ALL_SENT && cs->HasQueue()) {
-					cs->last_activity = GetTime();
 					cs->SendQueue();
 				}
+				cs->last_activity = GetTime();
 			}
 
 			if (sps == SPS_ALL_SENT && FD_ISSET(cs->sock, &read_fd)) {
