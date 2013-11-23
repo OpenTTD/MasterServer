@@ -49,7 +49,7 @@ public:
 	 * @param address the address of the server
 	 * @param frame time of last try
 	 */
-	UpdaterQueriedServer(NetworkAddress address, uint frame);
+	UpdaterQueriedServer(const NetworkAddress &address, uint frame);
 
 	/** The obvious destructor */
 	~UpdaterQueriedServer();
@@ -150,6 +150,7 @@ public:
 	 */
 	UpdaterNetworkUDPSocketHandler(Updater *updater, NetworkAddressList *addresses) :
 		NetworkUDPSocketHandler(addresses),
+		current_qs(NULL),
 		updater(updater)
 	{}
 

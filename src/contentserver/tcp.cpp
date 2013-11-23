@@ -215,6 +215,7 @@ void ServerNetworkContentSocketHandler::SendQueue()
 				fclose(this->contentFile);
 				this->contentFile = NULL;
 				this->Close();
+				delete p;
 				return;
 			}
 

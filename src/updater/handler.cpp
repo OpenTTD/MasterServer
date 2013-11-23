@@ -17,7 +17,7 @@
 
 ///*** Checking for expiration of retries of servers ***///
 
-UpdaterQueriedServer::UpdaterQueriedServer(NetworkAddress address, uint frame) : QueriedServer(address, frame)
+UpdaterQueriedServer::UpdaterQueriedServer(const NetworkAddress &address, uint frame) : QueriedServer(address, frame)
 {
 	this->received_game_info = false;
 }

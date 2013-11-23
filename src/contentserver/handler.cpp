@@ -39,7 +39,10 @@ ContentServer::~ContentServer()
 	for (SocketList::iterator s = listen_sockets.Begin(); s != listen_sockets.End(); s++) {
 		closesocket(s->second);
 	}
-	while (this->first != NULL) delete this->first;
+	while (this->first != NULL) {
+		this->first->cs = NULL;
+		delete this->first;
+	}
 }
 
 void ContentServer::AcceptClients(SOCKET listen_socket)
@@ -50,7 +53,10 @@ void ContentServer::AcceptClients(SOCKET listen_socket)
 		SOCKET s = accept(listen_socket, (struct sockaddr*)&sin, &sin_len);
 		if (s == INVALID_SOCKET) return;
 
-		if (!SetNonBlocking(s) || !SetNoDelay(s)) return;
+		if (!SetNonBlocking(s) || !SetNoDelay(s)) {
+			closesocket(s);
+			return;
+		}
 
 		new ServerNetworkContentSocketHandler(this, s, NetworkAddress(sin, sin_len));
 	}
@@ -79,10 +85,22 @@ void ContentServer::RealRun()
 		tv.tv_sec = 1;
 		tv.tv_usec = 0;
 #if !defined(__MORPHOS__) && !defined(__AMIGA__)
-		select(FD_SETSIZE, &read_fd, &write_fd, NULL, &tv);
+		int ret = select(FD_SETSIZE, &read_fd, &write_fd, NULL, &tv);
 #else
-		WaitSelect(FD_SETSIZE, &read_fd, &write_fd, NULL, &tv, NULL);
+		int ret = WaitSelect(FD_SETSIZE, &read_fd, &write_fd, NULL, &tv, NULL);
 #endif
+		if (ret < 0) {
+			/* Try again later. */
+			static int warned = false;
+			if (!warned) {
+				DEBUG(misc, 0, "select returned an error condition: %i", GET_LAST_ERROR());
+				warned = true;
+			}
+
+			CSleep(1);
+			continue;
+		}
+
 		/* accept clients.. */
 		/* take care of listener port */
 		for (SocketList::iterator s = listen_sockets.Begin(); s != listen_sockets.End(); s++) {
@@ -125,26 +143,31 @@ void ContentServer::RealRun()
 	}
 }
 
-ServerNetworkContentSocketHandler::ServerNetworkContentSocketHandler(ContentServer *cs, SOCKET s, NetworkAddress sin) : NetworkContentSocketHandler(s, sin), cs(cs)
+ServerNetworkContentSocketHandler::ServerNetworkContentSocketHandler(ContentServer *cs, SOCKET s, const NetworkAddress &sin) : NetworkContentSocketHandler(s, sin), cs(cs)
 {
 	this->next = cs->first;
 	cs->first = this;
 
-	this->contentQueue = NULL;
-	this->contentFile = NULL;
+	this->contentQueue       = NULL;
+	this->contentFile        = NULL;
+	this->contentFileId      = 0;
+	this->contentQueueIter   = 0;
+	this->contentQueueLength = 0;
 
 	this->last_activity = GetTime();
 }
 
 ServerNetworkContentSocketHandler::~ServerNetworkContentSocketHandler()
 {
-	ServerNetworkContentSocketHandler **prev = &cs->first;
-	while (*prev != this) {
-		assert(*prev != NULL);
-		prev = &(*prev)->next;
-	}
+	if (this->cs != NULL) {
+		ServerNetworkContentSocketHandler **prev = &this->cs->first;
+		while (*prev != this) {
+			assert(*prev != NULL);
+			prev = &(*prev)->next;
+		}
 
-	*prev = this->next;
+		*prev = this->next;
+	}
 
 	if (this->contentFile != NULL) fclose(this->contentFile);
 	this->contentFile = NULL;

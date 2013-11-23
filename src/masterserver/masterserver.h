@@ -41,7 +41,7 @@ public:
 	 * @param reply_address the address of the requester
 	 * @param frame         time of the last attempt
 	 */
-	MSQueriedServer(NetworkAddress query_address, NetworkAddress reply_address, uint64 session_key, uint frame);
+	MSQueriedServer(const NetworkAddress &query_address, const NetworkAddress &reply_address, uint64 session_key, uint frame);
 
 	void DoAttempt(UDPServer *server);
 

@@ -19,7 +19,7 @@
 
 /* Requerying of game servers */
 
-MSQueriedServer::MSQueriedServer(NetworkAddress query_address, NetworkAddress reply_address, uint64 session_key, uint frame) : QueriedServer(query_address, frame)
+MSQueriedServer::MSQueriedServer(const NetworkAddress &query_address, const NetworkAddress &reply_address, uint64 session_key, uint frame) : QueriedServer(query_address, frame)
 {
 	this->reply_address = reply_address;
 	this->session_key = session_key;

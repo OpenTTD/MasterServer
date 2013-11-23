@@ -95,7 +95,7 @@ public:
 	 * @param s  the socket we are connected with
 	 * @param sin IP etc. of the client
 	 */
-	ServerNetworkContentSocketHandler(ContentServer *cs, SOCKET s, NetworkAddress sin);
+	ServerNetworkContentSocketHandler(ContentServer *cs, SOCKET s, const NetworkAddress &sin);
 
 	/** The obvious destructor */
 	virtual ~ServerNetworkContentSocketHandler();
