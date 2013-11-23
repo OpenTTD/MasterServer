@@ -25,7 +25,10 @@ enum GCF_Flags {
 
 struct GRFIdentifier {
 	/** We want to be able to make an uninitialized GRF */
-	GRFIdentifier() {}
+	GRFIdentifier() : grfid(0)
+	{
+		memset(this->md5sum, 0, sizeof(this->md5sum));
+	}
 
 	/**
 	 * Copy the important GRF data into the new GRF

@@ -39,9 +39,14 @@ ContentServer::~ContentServer()
 	for (SocketList::iterator s = listen_sockets.Begin(); s != listen_sockets.End(); s++) {
 		closesocket(s->second);
 	}
+
+	/* Normally ~ServerNetworkContentSocketHandler updates first, but this is slightly more efficient. */
 	while (this->first != NULL) {
-		this->first->cs = NULL;
-		delete this->first;
+		ServerNetworkContentSocketHandler *cur = this->first;
+		this->first = this->first->next;
+
+		cur->cs = NULL;
+		delete cur;
 	}
 }
 

@@ -37,7 +37,7 @@ public:
 	 * @param address the address of the server
 	 * @param frame   the last frame of the attempt
 	 */
-	QueriedServer(NetworkAddress address, uint frame);
+	QueriedServer(const NetworkAddress &address, uint frame);
 
 	/** The obvious destructor */
 	virtual ~QueriedServer() {}

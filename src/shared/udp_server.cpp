@@ -15,9 +15,8 @@
  * @file udp_server.cpp Shared UDP server (master server/updater) related functionality
  */
 
-UDPServer::UDPServer(SQL *sql) : Server(sql)
+UDPServer::UDPServer(SQL *sql) : Server(sql), query_socket(NULL), frame(0)
 {
-	this->frame        = 0;
 }
 
 UDPServer::~UDPServer()
@@ -89,7 +88,7 @@ QueriedServer *UDPServer::RemoveQueriedServer(QueriedServer *qs)
 	return ret;
 }
 
-QueriedServer::QueriedServer(NetworkAddress address, uint frame) :
+QueriedServer::QueriedServer(const NetworkAddress &address, uint frame) :
 	server_address(address),
 	attempts(0),
 	frame(frame)
