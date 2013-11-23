@@ -12,6 +12,7 @@ CFLAGS       = !!CFLAGS!!
 CFLAGS_BUILD = !!CFLAGS_BUILD!!
 LIBS         = !!LIBS!!
 LDFLAGS      = !!LDFLAGS!!
+ROOT_DIR     = !!ROOT_DIR!!
 BIN_DIR      = !!BIN_DIR!!
 OBJS_DIR     = !!OBJS_DIR!!
 SRC_DIR      = !!SRC_DIR!!
@@ -58,7 +59,7 @@ ifdef REVISION
 REV := $(REVISION)
 else
 # Are we a SVN dir?
-ifeq ($(shell if test -d $(SRC_DIR)/.svn; then echo 1; fi), 1)
+ifeq ($(shell if test -d $(ROOT_DIR)/.svn; then echo 1; fi), 1)
 # Find if the local source if modified
 REV_MODIFIED := $(shell svnversion $(SRC_DIR) | sed -n 's/.*\(M\).*/\1/p' )
 # Find the revision like: rXXXX-branch
