@@ -9,6 +9,9 @@
 
 #include "stdafx.h"
 #include "date_func.h"
+#include "string_func.h"
+
+#include "shared/safeguards.h"
 
 #define M(a, b) ((a << 5) | b)
 static const uint16 _month_date_from_year_day[] = {
@@ -134,10 +137,10 @@ Date ConvertYMDToDate(Year year, Month month, Day day)
 	return year * 365 + nr_of_leap_years + days;
 }
 
-void DateToString(Date date, char *dest, size_t length)
+void DateToString(Date date, char *dest, const char *last)
 {
 	YearMonthDay ymd;
 	ConvertDateToYMD(date, &ymd);
 
-	snprintf(dest, length, "%d-%02d-%02d", ymd.year, ymd.month + 1, ymd.day);
+	seprintf(dest, last, "%d-%02d-%02d", ymd.year, ymd.month + 1, ymd.day);
 }

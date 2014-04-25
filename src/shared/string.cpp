@@ -16,6 +16,9 @@
 #include <stdarg.h>
 #include <ctype.h> // required for tolower()
 
+#include "shared/safeguards.h"
+#undef vsnprintf
+
 enum StringControlCode {
 	SCC_SPRITE_START  = 0xE200,
 	SCC_SPRITE_END    = SCC_SPRITE_START + 0xFF,
@@ -31,7 +34,7 @@ enum StringControlCode {
  * @param ap     the list of arguments for the format
  * @return the number of added characters
  */
-static int CDECL vseprintf(char *str, const char *last, const char *format, va_list ap)
+int CDECL vseprintf(char *str, const char *last, const char *format, va_list ap)
 {
 	if (str >= last) return 0;
 	size_t size = last - str + 1;

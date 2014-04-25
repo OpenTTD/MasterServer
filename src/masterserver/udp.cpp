@@ -12,6 +12,8 @@
 #include "shared/string_func.h"
 #include "masterserver.h"
 
+#include "shared/safeguards.h"
+
 /**
  * @file masterserver/udp.cpp Handler of incoming UDP master server packets
  */

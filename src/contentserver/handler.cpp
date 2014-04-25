@@ -12,6 +12,8 @@
 #include "shared/network/core/core.h"
 #include "contentserver.h"
 
+#include "shared/safeguards.h"
+
 /**
  * @file contentserver/handler.cpp Handler of queries to the content server
  */

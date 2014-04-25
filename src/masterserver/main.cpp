@@ -12,6 +12,8 @@
 #include "shared/debug.h"
 #include "masterserver.h"
 
+#include "shared/safeguards.h"
+
 int main(int argc, char *argv[])
 {
 	bool fork = false;

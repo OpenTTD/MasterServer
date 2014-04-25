@@ -18,6 +18,8 @@
 #include <mysql/mysql.h>
 #include <string.h>
 
+#include "shared/safeguards.h"
+
 /**
  * @file mysql.cpp Implementation of the MySQL backend
  */
@@ -111,7 +113,7 @@ void MySQL::MakeServerOnline(const char *ip, uint16 port, bool ipv6, uint64 sess
 	 * Resetting the last_queried here makes the updater update them
 	 * which is pointless. New servers, and old servers that have really
 	 * come online (last_queried = 0000...) are first in the queue. */
-	snprintf(sql, sizeof(sql), "CALL MakeOnline('%d', '%s', '%d', '%lld')", ipv6, ip, port, session_key);
+	seprintf(sql, lastof(sql), "CALL MakeOnline('%d', '%s', '%d', '%lld')", ipv6, ip, port, session_key);
 	MYSQL_RES *res = MySQLQuery(sql);
 	if (res != NULL) mysql_free_result(res);
 }
@@ -123,7 +125,7 @@ void MySQL::MakeServerOffline(const char *ip, uint16 port)
 	/* Set the 'last_queried' date to a low value, so the next time
 	 * the server is marked online, it will be handled with priority
 	 * by the updater. */
-	snprintf(sql, sizeof(sql), "CALL MakeOffline('%s', '%d')", ip, port);
+	seprintf(sql, lastof(sql), "CALL MakeOffline('%s', '%d')", ip, port);
 	MYSQL_RES *res = MySQLQuery(sql);
 	if (res != NULL) mysql_free_result(res);
 }
@@ -143,8 +145,8 @@ void MySQL::UpdateNetworkGameInfo(const char *ip, uint16 port, const NetworkGame
 	 */
 	char game_date[14];
 	char start_date[14];
-	DateToString(info->game_date,  game_date,  sizeof(game_date));
-	DateToString(info->start_date, start_date, sizeof(start_date));
+	DateToString(info->game_date,  game_date,  lastof(game_date));
+	DateToString(info->start_date, start_date, lastof(start_date));
 
 	/* Count number of GRFS */
 	uint num_grfs = 0;
@@ -159,7 +161,7 @@ void MySQL::UpdateNetworkGameInfo(const char *ip, uint16 port, const NetworkGame
 	this->Quote(safe_map_name,        sizeof(safe_map_name),        info->map_name);
 
 	/* Do the actual update of the information */
-	snprintf(sql, sizeof(sql), "SELECT UpdateGameInfo ('%s', '%d'," \
+	seprintf(sql, lastof(sql), "SELECT UpdateGameInfo ('%s', '%d'," \
 						"'%d', '%s', '%s', '%d', '%d', '%d', '%d', '%d', '%d', '%d', " \
 						"'%d', '%s', '%s', '%s', '%d', '%d', '%d', '%d', '%d')", ip, port,
 						info->game_info_version, safe_server_name, safe_server_revision,
@@ -182,7 +184,7 @@ void MySQL::UpdateNetworkGameInfo(const char *ip, uint16 port, const NetworkGame
 	 * should never exceed 15 characters.
 	 */
 	char server_id[16];
-	snprintf(server_id, sizeof(server_id), "%s", mysql_fetch_row(res)[0]);
+	seprintf(server_id, lastof(server_id), "%s", mysql_fetch_row(res)[0]);
 	mysql_free_result(res);
 	if (strcmp(server_id, "0") == 0) return;
 
@@ -193,7 +195,7 @@ void MySQL::UpdateNetworkGameInfo(const char *ip, uint16 port, const NetworkGame
 	 */
 
 	/* Remove all GRFs, so we can add them later on */
-	snprintf(sql, sizeof(sql), "DELETE FROM servers_newgrfs WHERE server_id='%s'", server_id);
+	seprintf(sql, lastof(sql), "DELETE FROM servers_newgrfs WHERE server_id='%s'", server_id);
 	res = MySQLQuery(sql);
 	if (res != NULL) mysql_free_result(res);
 
@@ -202,7 +204,7 @@ void MySQL::UpdateNetworkGameInfo(const char *ip, uint16 port, const NetworkGame
 		char md5sum[sizeof(c->ident.md5sum) * 2 + 1];
 		this->MD5sumToString(c->ident.md5sum, md5sum);
 
-		snprintf(sql, sizeof(sql), "INSERT INTO servers_newgrfs SET server_id='%s', "
+		seprintf(sql, lastof(sql), "INSERT INTO servers_newgrfs SET server_id='%s', "
 				"grfid='%u', md5sum='%s'", server_id, BSWAP32(c->ident.grfid), md5sum);
 		res = MySQLQuery(sql);
 
@@ -215,7 +217,7 @@ uint MySQL::GetActiveServers(NetworkAddress result[], int length, bool ipv6)
 	char sql[MAX_SQL_LEN];
 
 	/* Select the online servers from database */
-	snprintf(sql, sizeof(sql), "SELECT ip, port FROM servers_ips WHERE online='1' AND ipv6='%d' GROUP BY server_id LIMIT 0,%d", ipv6, length);
+	seprintf(sql, lastof(sql), "SELECT ip, port FROM servers_ips WHERE online='1' AND ipv6='%d' GROUP BY server_id LIMIT 0,%d", ipv6, length);
 	MYSQL_RES *res = MySQLQuery(sql);
 	if (res == NULL) return 0;
 
@@ -236,7 +238,7 @@ uint MySQL::GetRequeryServers(NetworkAddress result[], int length, uint interval
 	char sql[MAX_SQL_LEN];
 
 	/* Select the online servers from database */
-	snprintf(sql, sizeof(sql), "SELECT ip, port FROM servers_ips "   \
+	seprintf(sql, lastof(sql), "SELECT ip, port FROM servers_ips "   \
 						"WHERE online='1' AND last_queried < DATE_SUB(NOW(), " \
 						"INTERVAL %d SECOND) ORDER BY last_queried LIMIT 0,%d",
 						interval, length);
@@ -250,7 +252,7 @@ uint MySQL::GetRequeryServers(NetworkAddress result[], int length, uint interval
 		MYSQL_ROW row = mysql_fetch_row(res);
 		result[i] = NetworkAddress(row[0], atoi(row[1]));
 
-		snprintf(sql, sizeof(sql),
+		seprintf(sql, lastof(sql),
 				"UPDATE servers_ips SET last_queried=NOW() WHERE ip='%s' AND port='%s'", row[0], row[1]);
 		MYSQL_RES *res2 = MySQLQuery(sql);
 		mysql_free_result(res2);
@@ -265,7 +267,7 @@ void MySQL::RemoveUnadvertised(uint interval)
 	char sql[MAX_SQL_LEN];
 
 	/* Select the online servers from database */
-	snprintf(sql, sizeof(sql), "UPDATE servers_ips SET online='0' WHERE "   \
+	seprintf(sql, lastof(sql), "UPDATE servers_ips SET online='0' WHERE "   \
 						"online='1' AND last_advertised < DATE_SUB(NOW(), INTERVAL %d SECOND)",
 						interval);
 
@@ -287,7 +289,7 @@ void MySQL::AddGRF(const GRFIdentifier *grf)
 
 	this->MD5sumToString(grf->md5sum, md5sum);
 
-	snprintf(sql, sizeof(sql), "INSERT IGNORE INTO newgrfs SET name='Not yet known',"
+	seprintf(sql, lastof(sql), "INSERT IGNORE INTO newgrfs SET name='Not yet known',"
 			"grfid='%u', md5sum='%s', unknown='1'", BSWAP32(grf->grfid), md5sum);
 	MYSQL_RES *res = MySQLQuery(sql);
 
@@ -303,7 +305,7 @@ void MySQL::SetGRFName(const GRFIdentifier *grf, const char *name)
 	this->MD5sumToString(grf->md5sum, md5sum);
 	this->Quote(safe_name, sizeof(safe_name), name);
 
-	snprintf(sql, sizeof(sql), "UPDATE newgrfs SET name='%s', unknown='0' WHERE grfid='%u' AND md5sum='%s' AND unknown='1'",
+	seprintf(sql, lastof(sql), "UPDATE newgrfs SET name='%s', unknown='0' WHERE grfid='%u' AND md5sum='%s' AND unknown='1'",
 			safe_name, BSWAP32(grf->grfid), md5sum);
 	MYSQL_RES *res = MySQLQuery(sql);
 
@@ -316,24 +318,24 @@ bool MySQL::FillContentDetails(ContentInfo info[], int length, ContentKey key, b
 		char sql[MAX_SQL_LEN];
 		char *p = sql;
 
-		p += snprintf(sql, sizeof(sql), "SELECT id, name, filename, filesize, " \
+		p += seprintf(sql, lastof(sql), "SELECT id, name, filename, filesize, " \
 				"type_id, version, url, description, uniqueid, uniquemd5 " \
 				"FROM bananas_file WHERE active = 1 AND ");
 
 		switch (key) {
 			case CK_ID:
-				snprintf(p, lastof(sql) - p, "id = %i", info[i].id);
+				seprintf(p, lastof(sql), "id = %i", info[i].id);
 				break;
 
 			case CK_UNIQUEID:
-				snprintf(p, lastof(sql) - p, "uniqueid = %u AND type_id = %i",
+				seprintf(p, lastof(sql), "uniqueid = %u AND type_id = %i",
 								info[i].unique_id, info[i].type);
 				break;
 
 			case CK_UNIQUEID_MD5:
 				char md5sum[sizeof(info[i].md5sum) * 2 + 1];
 				this->MD5sumToString(info[i].md5sum, md5sum);
-				snprintf(p, lastof(sql) - p, "uniqueid = %u AND uniquemd5 = '%s' AND type_id = %i",
+				seprintf(p, lastof(sql), "uniqueid = %u AND uniquemd5 = '%s' AND type_id = %i",
 								info[i].unique_id, md5sum, info[i].type);
 				break;
 
@@ -386,7 +388,7 @@ bool MySQL::FillContentDetails(ContentInfo info[], int length, ContentKey key, b
 		if (!extra_data) continue;
 
 		/* Now get the tags */
-		snprintf(sql, sizeof(sql), "SELECT tag.name FROM bananas_tag AS tag JOIN " \
+		seprintf(sql, lastof(sql), "SELECT tag.name FROM bananas_tag AS tag JOIN " \
 				"bananas_file_tags AS file ON tag.id = file.tag_id WHERE " \
 				"file.file_id = %u", info[i].id);
 		res = MySQLQuery(sql);
@@ -404,7 +406,7 @@ bool MySQL::FillContentDetails(ContentInfo info[], int length, ContentKey key, b
 		mysql_free_result(res);
 
 		/* And now get the dependencies */
-		snprintf(sql, sizeof(sql), "SELECT to_file_id FROM bananas_file_deps " \
+		seprintf(sql, lastof(sql), "SELECT to_file_id FROM bananas_file_deps " \
 				"WHERE from_file_id = %u", info[i].id);
 		res = MySQLQuery(sql);
 		if (res == NULL) return false;
@@ -428,7 +430,7 @@ uint MySQL::FindContentDetails(ContentInfo info[], int length, ContentType type,
 {
 	char sql[MAX_SQL_LEN];
 
-	snprintf(sql, sizeof(sql), "SELECT id FROM bananas_file " \
+	seprintf(sql, lastof(sql), "SELECT id FROM bananas_file " \
 			"WHERE active = 1 AND published = 1 AND type_id = %i AND " \
 			"minimalVersion <= %i AND " \
 			"(maximalVersion = -1 OR maximalVersion >= %i)" \
@@ -455,11 +457,11 @@ void MySQL::IncrementDownloadCount(ContentID id)
 {
 	char sql[MAX_SQL_LEN];
 
-	snprintf(sql, sizeof(sql), "UPDATE bananas_file SET downloads = downloads + 1 WHERE id = %u", id);
+	seprintf(sql, lastof(sql), "UPDATE bananas_file SET downloads = downloads + 1 WHERE id = %u", id);
 	MYSQL_RES *res = MySQLQuery(sql);
 	if (res != NULL) mysql_free_result(res);
 
-	snprintf(sql, sizeof(sql), "INSERT DELAYED INTO bananas_download SET file_id = %u, date = NOW()", id);
+	seprintf(sql, lastof(sql), "INSERT DELAYED INTO bananas_download SET file_id = %u, date = NOW()", id);
 	res = MySQLQuery(sql);
 	if (res != NULL) mysql_free_result(res);
 }

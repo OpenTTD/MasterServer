@@ -14,6 +14,9 @@
 #include "debug.h"
 #include "string_func.h"
 
+#include "shared/safeguards.h"
+#undef vsnprintf
+
 enum {
 	BUFFER_LENGTH = 1024
 };
@@ -34,7 +37,7 @@ static void PrintLog(FILE *stream, const char *header, const char *format, va_li
 	curtime = time(NULL);
 	strftime(date, sizeof(date), "%Y-%m-%d %H:%M:%S GMT", gmtime(&curtime));
 
-	vsnprintf(buf, sizeof(buf), format, va);
+	vseprintf(buf, lastof(buf), format, va);
 	va_end(va);
 
 	fprintf(stream, "[%s]: [%s] %s\n", date, header, buf);
@@ -162,11 +165,11 @@ const char *GetDebugString(void)
 
 	memset(dbgstr, 0, sizeof(dbgstr));
 	i = debug_level;
-	snprintf(dbgstr, sizeof(dbgstr), "%s=%d", i->name, *i->level);
+	seprintf(dbgstr, lastof(dbgstr), "%s=%d", i->name, *i->level);
 
 	for (i++; i != endof(debug_level); i++) {
-		snprintf(dbgval, sizeof(dbgval), ", %s=%d", i->name, *i->level);
-		ttd_strlcat(dbgstr, dbgval, sizeof(dbgstr));
+		seprintf(dbgval, lastof(dbgval), ", %s=%d", i->name, *i->level);
+		strecat(dbgstr, dbgval, lastof(dbgstr));
 	}
 
 	return dbgstr;

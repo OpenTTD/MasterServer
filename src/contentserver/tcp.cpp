@@ -13,6 +13,8 @@
 #include "contentserver.h"
 #include "path.h"
 
+#include "shared/safeguards.h"
+
 /**
  * @file contentserver/tcp.cpp Handler of incoming TCP content server packets
  */
@@ -174,7 +176,7 @@ void ServerNetworkContentSocketHandler::SendQueue()
 		ContentInfo *infos = &this->contentQueue[this->contentQueueIter];
 
 		char file_name[MAX_PATH];
-		snprintf(file_name, lengthof(file_name), CONTENT_DATA_PATH, infos->id / 100, infos->id);
+		seprintf(file_name, lastof(file_name), CONTENT_DATA_PATH, infos->id / 100, infos->id);
 		this->contentFile = fopen(file_name, "rb");
 		if (this->contentFile != NULL) {
 			fseek(this->contentFile, 0, SEEK_END);

@@ -12,6 +12,8 @@
 #include "shared/string_func.h"
 #include "updater.h"
 
+#include "shared/safeguards.h"
+
 /**
  * @file updater/udp.cpp Handler of incoming UDP packets for the updater
  */

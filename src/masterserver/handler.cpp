@@ -13,6 +13,8 @@
 #include "masterserver.h"
 #include <time.h>
 
+#include "shared/safeguards.h"
+
 /**
  * @file masterserver/handler.cpp Handler of retries and updating the server list packet sent to clients
  */

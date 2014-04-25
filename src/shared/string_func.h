@@ -91,6 +91,7 @@ char *strecpy(char *dst, const char *src, const char *last);
 void str_validate(char *str, const char *last, bool allow_newlines = false, bool ignore = false);
 
 int CDECL seprintf(char *str, const char *last, const char *format, ...);
+int CDECL vseprintf(char *str, const char *last, const char *format, va_list ap);
 
 /** Convert the given string to lowercase, only works with ASCII! */
 void strtolower(char *str);

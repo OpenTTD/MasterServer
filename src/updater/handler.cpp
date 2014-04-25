@@ -11,6 +11,8 @@
 #include "shared/debug.h"
 #include "updater.h"
 
+#include "shared/safeguards.h"
+
 /**
  * @file updater/handler.cpp Handler of retries and requerying game servers
  */

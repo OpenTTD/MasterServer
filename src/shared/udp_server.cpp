@@ -11,6 +11,8 @@
 #include "udp_server.h"
 #include "debug.h"
 
+#include "shared/safeguards.h"
+
 /**
  * @file udp_server.cpp Shared UDP server (master server/updater) related functionality
  */

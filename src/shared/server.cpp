@@ -75,6 +75,8 @@ static void ForkServer(const char *logfile, const char *application_name)
 }
 #endif
 
+#include "shared/safeguards.h"
+
 void CSleep(int milliseconds)
 {
 #ifdef WIN32

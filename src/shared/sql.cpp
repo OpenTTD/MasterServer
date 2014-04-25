@@ -11,6 +11,8 @@
 #include "udp_server.h"
 #include "sql.h"
 
+#include "shared/safeguards.h"
+
 /**
  * @file sql.cpp Implementation of some 'core class' -> string/number conversion functions
  */
