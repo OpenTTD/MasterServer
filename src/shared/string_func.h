@@ -16,38 +16,6 @@
  * Appends characters from one string to another.
  *
  * Appends the source string to the destination string with respect of the
- * terminating null-character and the maximum size of the destination
- * buffer.
- *
- * @note usage ttd_strlcat(dst, src, lengthof(dst));
- * @note lengthof() applies only to fixed size arrays
- *
- * @param dst The buffer containing the target string
- * @param src The buffer containing the string to append
- * @param size The maximum size of the destination buffer
- */
-void ttd_strlcat(char *dst, const char *src, size_t size);
-
-/**
- * Copies characters from one buffer to another.
- *
- * Copies the source string to the destination buffer with respect of the
- * terminating null-character and the maximum size of the destination
- * buffer.
- *
- * @note usage ttd_strlcpy(dst, src, lengthof(dst));
- * @note lengthof() applies only to fixed size arrays
- *
- * @param dst The destination buffer
- * @param src The buffer containing the string to copy
- * @param size The maximum size of the destination buffer
- */
-void ttd_strlcpy(char *dst, const char *src, size_t size);
-
-/**
- * Appends characters from one string to another.
- *
- * Appends the source string to the destination string with respect of the
  * terminating null-character and and the last pointer to the last element
  * in the destination buffer. If the last pointer is set to NULL no
  * boundary check is performed.

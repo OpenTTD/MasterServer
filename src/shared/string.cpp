@@ -41,27 +41,6 @@ int CDECL vseprintf(char *str, const char *last, const char *format, va_list ap)
 	return min((int)size, vsnprintf(str, size, format, ap));
 }
 
-void ttd_strlcat(char *dst, const char *src, size_t size)
-{
-	assert(size > 0);
-	while (size > 0 && *dst != '\0') {
-		size--;
-		dst++;
-	}
-
-	ttd_strlcpy(dst, src, size);
-}
-
-
-void ttd_strlcpy(char *dst, const char *src, size_t size)
-{
-	assert(size > 0);
-	while (--size > 0 && *src != '\0') {
-		*dst++ = *src++;
-	}
-	*dst = '\0';
-}
-
 
 char *strecat(char *dst, const char *src, const char *last)
 {

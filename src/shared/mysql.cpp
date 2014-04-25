@@ -352,15 +352,15 @@ bool MySQL::FillContentDetails(ContentInfo info[], int length, ContentKey key, b
 
 		MYSQL_ROW row = mysql_fetch_row(res);
 		info[i].id = (ContentID)atoi(row[0]);
-		ttd_strlcpy(info[i].filename, row[2], sizeof(info[i].filename));
+		strecpy(info[i].filename, row[2], lastof(info[i].filename));
 		info[i].filesize = atoi(row[3]);
 		info[i].type = (ContentType)atoi(row[4]);
 
 		if (extra_data) {
-			ttd_strlcpy(info[i].name, row[1], sizeof(info[i].name));
-			ttd_strlcpy(info[i].version, row[5], sizeof(info[i].version));
-			ttd_strlcpy(info[i].url, row[6], sizeof(info[i].url));
-			ttd_strlcpy(info[i].description, row[7], sizeof(info[i].description));
+			strecpy(info[i].name, row[1], lastof(info[i].name));
+			strecpy(info[i].version, row[5], lastof(info[i].version));
+			strecpy(info[i].url, row[6], lastof(info[i].url));
+			strecpy(info[i].description, row[7], lastof(info[i].description));
 		}
 
 		if (extra_data && key != CK_UNIQUEID_MD5) {
@@ -400,7 +400,7 @@ bool MySQL::FillContentDetails(ContentInfo info[], int length, ContentKey key, b
 			info[i].tags = MallocT<char[32]>(rows);
 			for (uint j = 0; j < rows; j++) {
 				MYSQL_ROW row = mysql_fetch_row(res);
-				ttd_strlcpy(info[i].tags[j], row[0], sizeof(info[i].tags[j]));
+				strecpy(info[i].tags[j], row[0], lastof(info[i].tags[j]));
 			}
 		}
 		mysql_free_result(res);
